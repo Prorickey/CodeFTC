@@ -5,6 +5,7 @@ import type {
   ModuleMeta,
   LessonMeta,
   Exercise,
+  ExerciseFile,
   LessonData,
   SidebarModule,
 } from "./types"
@@ -70,11 +71,17 @@ async function loadLessonMetas(
       const mdxRaw = await readFile(join(lessonPath, "content.mdx"), "utf-8")
       const { data } = matter(mdxRaw)
       const order = parseInt(dir.name.split("-")[0] ?? "0", 10)
+      let testCount = 0
+      try {
+        const exRaw = await readFile(join(lessonPath, "exercise.json"), "utf-8")
+        testCount = (JSON.parse(exRaw) as { testCount?: number }).testCount ?? 0
+      } catch { /* no exercise.json */ }
       lessons.push({
         title: (data.title as string) || dir.name.replace(/^\d+-/, "").replace(/-/g, " "),
         slug: dir.name,
         moduleSlug,
         order,
+        testCount,
         description: data.description as string | undefined,
       })
     } catch {
@@ -107,7 +114,12 @@ export async function getLessonData(
 
   // Load exercise
   const exerciseRaw = await readFile(join(lessonPath, "exercise.json"), "utf-8")
-  const exercise = JSON.parse(exerciseRaw) as Exercise
+  const exerciseFile = JSON.parse(exerciseRaw) as ExerciseFile
+  const [starterCode, solutionCode] = await Promise.all([
+    readFile(join(lessonPath, "Starter.java"), "utf-8"),
+    readFile(join(lessonPath, "Solution.java"), "utf-8"),
+  ])
+  const exercise: Exercise = { ...exerciseFile, starterCode, solutionCode }
 
   // Build flat list of all lessons for prev/next
   const allLessons: { moduleSlug: string; lessonSlug: string }[] = []

@@ -1,7 +1,6 @@
 {
   "title": "Your First Motor",
-  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"First Motor\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        // TODO: Get a DcMotor from hardwareMap named \"testMotor\"\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: Set the motor power to 0.5\n        \n        telemetry.addData(\"Status\", \"Running\");\n        telemetry.update();\n    }\n}",
-  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"First Motor\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor testMotor = hardwareMap.get(DcMotor.class, \"testMotor\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        testMotor.setPower(0.5);\n        \n        telemetry.addData(\"Status\", \"Running\");\n        telemetry.update();\n    }\n}",
+  "testCount": 2,
   "hints": [
     {
       "title": "How to get a motor from the hardware map",

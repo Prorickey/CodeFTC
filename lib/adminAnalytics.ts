@@ -30,7 +30,7 @@ function fillDays(
   const result: { date: string; count: number }[] = []
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date()
-    d.setDate(d.getDate() - i)
+    d.setUTCDate(d.getUTCDate() - i)
     const key = d.toISOString().slice(0, 10)
     result.push({ date: key, count: map.get(key) ?? 0 })
   }
@@ -75,7 +75,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       _count: { lessonId: true },
     }),
 
-    prisma.$queryRaw<{ date: string; count: string }[]>`
+    prisma.$queryRaw<{ date: Date; count: bigint }[]>`
       SELECT DATE("createdAt") as date, COUNT(*) as count
       FROM "User"
       WHERE "createdAt" >= ${ago30}
@@ -83,7 +83,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       ORDER BY date ASC
     `,
 
-    prisma.$queryRaw<{ date: string; count: string }[]>`
+    prisma.$queryRaw<{ date: Date; count: bigint }[]>`
       SELECT DATE("createdAt") as date, COUNT(DISTINCT "userId") as count
       FROM "AnalyticsEvent"
       WHERE type = 'code_run' AND "createdAt" >= ${ago30} AND "userId" IS NOT NULL
@@ -91,7 +91,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       ORDER BY date ASC
     `,
 
-    prisma.$queryRaw<{ date: string; count: string }[]>`
+    prisma.$queryRaw<{ date: Date; count: bigint }[]>`
       SELECT DATE("createdAt") as date, COUNT(*) as count
       FROM "AnalyticsEvent"
       WHERE type = 'code_run' AND "createdAt" >= ${ago30}
@@ -137,8 +137,11 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       ? Math.round((totalLessonsWithCompletes / totalUsers) * 100)
       : 0
 
-  const toRows = (raw: { date: string; count: string }[]) =>
-    raw.map((r) => ({ date: String(r.date).slice(0, 10), count: Number(r.count) }))
+  const toRows = (raw: { date: string | Date; count: string | bigint }[]) =>
+    raw.map((r) => ({
+      date: r.date instanceof Date ? r.date.toISOString().slice(0, 10) : String(r.date).slice(0, 10),
+      count: Number(r.count),
+    }))
 
   return {
     stats: {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef } from "react"
+import { PanelLeftOpen, PanelRightOpen } from "lucide-react"
 import { LessonLayout } from "@/components/layout/LessonLayout"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { LessonContent } from "@/components/lesson/LessonContent"
@@ -59,6 +60,8 @@ export function LessonPage({
   const [result, setResult] = useState<ExecutionResult | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [showingSolution, setShowingSolution] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [editorCollapsed, setEditorCollapsed] = useState(false)
 
   // Track whether we've loaded from the DB yet to avoid overwriting with stale localStorage
   const dbLoadedRef = useRef(false)
@@ -158,8 +161,15 @@ export function LessonPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, lessonId }),
       })
-      const data = await response.json()
-      setResult(data as ExecutionResult)
+      const data = await response.json() as ExecutionResult
+      setResult(data)
+      // Persist test progress to localStorage so sidebar can show it
+      if (data.testResults.length > 0) {
+        const passed = data.testResults.filter((t) => t.passed).length
+        const total = data.testResults.length
+        localStorage.setItem(`ftc-tests:${lessonId}`, JSON.stringify({ passed, total }))
+        window.dispatchEvent(new Event("ftc-tests-updated"))
+      }
     } catch (err) {
       setResult({
         success: false,
@@ -202,15 +212,27 @@ export function LessonPage({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar
-        modules={modules}
-        moduleSlug={moduleSlug}
-        lessonSlug={lessonSlug}
-      />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <LessonLayout
-          leftPanel={
-            <div className="flex h-full flex-col">
+      {!sidebarCollapsed && (
+        <Sidebar
+          modules={modules}
+          moduleSlug={moduleSlug}
+          lessonSlug={lessonSlug}
+          onCollapse={() => setSidebarCollapsed(true)}
+        />
+      )}
+      <div className="relative flex flex-1 flex-col overflow-hidden">
+        {sidebarCollapsed && (
+          <button
+            onClick={() => setSidebarCollapsed(false)}
+            title="Expand sidebar"
+            className="hidden lg:flex absolute left-2 top-2 z-10 items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+        )}
+        {editorCollapsed ? (
+          <>
+            <div className="flex h-full flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto">
                 <LessonContent content={data.content} />
                 {data.exercise.hints.length > 0 && (
@@ -221,31 +243,55 @@ export function LessonPage({
               </div>
               <LessonNav prev={data.prev} next={data.next} />
             </div>
-          }
-          rightPanel={
-            <>
-              <EditorToolbar
-                onRun={handleRun}
-                onReset={handleReset}
-                onToggleSolution={handleToggleSolution}
-                showingSolution={showingSolution}
-                isRunning={isRunning}
-                isAuthenticated={isAuthenticated}
-              />
-              <div className="relative flex-1 overflow-hidden">
-                <div className={`absolute inset-0 ${showingSolution ? "invisible pointer-events-none" : ""}`}>
-                  <CodeEditor value={code} onChange={setCode} />
+            <button
+              onClick={() => setEditorCollapsed(false)}
+              title="Expand editor"
+              className="absolute right-4 top-2 z-10 flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+            >
+              <PanelRightOpen className="h-4 w-4" />
+            </button>
+          </>
+        ) : (
+          <LessonLayout
+            leftPanel={
+              <div className="flex h-full flex-col">
+                <div className="flex-1 overflow-y-auto">
+                  <LessonContent content={data.content} />
+                  {data.exercise.hints.length > 0 && (
+                    <div className="px-6 pb-4 lg:px-8">
+                      <HintAccordion hints={data.exercise.hints} onHintOpen={handleHintOpen} />
+                    </div>
+                  )}
                 </div>
-                <div className={`absolute inset-0 ${showingSolution ? "" : "invisible pointer-events-none"}`}>
-                  <CodeEditor value={data.exercise.solutionCode} onChange={() => {}} readOnly />
+                <LessonNav prev={data.prev} next={data.next} />
+              </div>
+            }
+            rightPanel={
+              <>
+                <EditorToolbar
+                  onRun={handleRun}
+                  onReset={handleReset}
+                  onToggleSolution={handleToggleSolution}
+                  onCollapse={() => setEditorCollapsed(true)}
+                  showingSolution={showingSolution}
+                  isRunning={isRunning}
+                  isAuthenticated={isAuthenticated}
+                />
+                <div className="relative flex-1 overflow-hidden">
+                  <div className={`absolute inset-0 ${showingSolution ? "invisible pointer-events-none" : ""}`}>
+                    <CodeEditor value={code} onChange={setCode} />
+                  </div>
+                  <div className={`absolute inset-0 ${showingSolution ? "" : "invisible pointer-events-none"}`}>
+                    <CodeEditor value={data.exercise.solutionCode} onChange={() => {}} readOnly />
+                  </div>
                 </div>
-              </div>
-              <div className={`h-[200px] shrink-0 overflow-y-auto border-t border-[var(--color-border)] ${showingSolution ? "hidden" : ""}`}>
-                <OutputPanel result={result} isRunning={isRunning} />
-              </div>
-            </>
-          }
-        />
+                <div className={`h-[200px] shrink-0 overflow-y-auto border-t border-[var(--color-border)] ${showingSolution ? "hidden" : ""}`}>
+                  <OutputPanel result={result} isRunning={isRunning} />
+                </div>
+              </>
+            }
+          />
+        )}
       </div>
     </div>
   )

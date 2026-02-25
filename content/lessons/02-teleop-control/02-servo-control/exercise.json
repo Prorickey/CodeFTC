@@ -1,7 +1,6 @@
 {
   "title": "Servo Control",
-  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.Servo;\n\n@TeleOp(name = \"Servo Control\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        // TODO: Get a Servo from hardwareMap named \"testServo\"\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: If gamepad1.a is pressed, set servo position to 1.0\n        // TODO: If gamepad1.b is pressed, set servo position to 0.0\n    }\n}",
-  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.Servo;\n\n@TeleOp(name = \"Servo Control\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        Servo testServo = hardwareMap.get(Servo.class, \"testServo\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        if (gamepad1.a) {\n            testServo.setPosition(1.0);\n        }\n        if (gamepad1.b) {\n            testServo.setPosition(0.0);\n        }\n    }\n}",
+  "testCount": 1,
   "hints": [
     {
       "title": "How to get a servo from the hardware map",

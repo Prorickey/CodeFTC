@@ -6,7 +6,7 @@ export async function recordEvent(opts: {
   lessonId: string
   userId?: string | null
   hintIndex?: number
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     await prisma.analyticsEvent.create({
       data: {
@@ -16,7 +16,9 @@ export async function recordEvent(opts: {
         hintIndex: opts.hintIndex ?? null,
       },
     })
+    return true
   } catch (err) {
-    console.error("[analytics] Failed to record event:", err)
+    console.error("[analytics] Failed to record event:", opts.type, err)
+    return false
   }
 }

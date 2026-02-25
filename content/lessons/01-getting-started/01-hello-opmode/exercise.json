@@ -1,7 +1,6 @@
 {
   "title": "Hello OpMode",
-  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\n\n@TeleOp(name = \"Hello OpMode\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        // TODO: Add telemetry data with caption \"Message\" and value \"Hello, FTC!\"\n        // TODO: Call telemetry.update()\n        \n        waitForStart();\n        \n        // TODO: Add telemetry data with caption \"Status\" and value \"Running\"\n        // TODO: Call telemetry.update()\n    }\n}",
-  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\n\n@TeleOp(name = \"Hello OpMode\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        telemetry.addData(\"Message\", \"Hello, FTC!\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        telemetry.addData(\"Status\", \"Running\");\n        telemetry.update();\n    }\n}",
+  "testCount": 3,
   "hints": [
     {
       "title": "How to add telemetry data",

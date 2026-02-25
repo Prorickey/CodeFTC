@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, RotateCcw, Eye, EyeOff, LogIn } from "lucide-react"
+import { Play, RotateCcw, Eye, EyeOff, LogIn, PanelRightClose } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -8,6 +8,7 @@ interface EditorToolbarProps {
   onRun: () => void
   onReset: () => void
   onToggleSolution: () => void
+  onCollapse: () => void
   showingSolution: boolean
   isRunning: boolean
   isAuthenticated: boolean
@@ -17,6 +18,7 @@ export function EditorToolbar({
   onRun,
   onReset,
   onToggleSolution,
+  onCollapse,
   showingSolution,
   isRunning,
   isAuthenticated,
@@ -83,6 +85,14 @@ export function EditorToolbar({
             <span>Show Solution</span>
           </>
         )}
+      </button>
+
+      <button
+        onClick={onCollapse}
+        title="Collapse editor"
+        className="shrink-0 rounded p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+      >
+        <PanelRightClose className="h-4 w-4" />
       </button>
     </div>
   )

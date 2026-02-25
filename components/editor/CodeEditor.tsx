@@ -5,9 +5,9 @@ import dynamic from "next/dynamic"
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full items-center justify-center bg-[#1e1e1e] text-[var(--color-text-muted)]">
+    <div className="flex h-full items-center justify-center bg-[#1e1e1e] text-(--color-text-muted)">
       <div className="flex items-center gap-3">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-text-muted)] border-t-transparent" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-(--color-text-muted) border-t-transparent" />
         <span className="text-sm">Loading editor...</span>
       </div>
     </div>
@@ -51,7 +51,7 @@ export function CodeEditor({
         }}
       />
       {readOnly && (
-        <div className="pointer-events-none absolute right-3 top-3 rounded border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-2 py-0.5 text-xs text-[var(--color-warning)]">
+        <div className="pointer-events-none absolute right-3 top-3 rounded border border-(--color-warning)/40 bg-[var(--color-warning)]/10 px-2 py-0.5 text-xs text-[var(--color-warning)]">
           Solution — read only
         </div>
       )}

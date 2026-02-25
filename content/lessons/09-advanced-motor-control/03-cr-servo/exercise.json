@@ -1,7 +1,6 @@
 {
   "title": "CRServo: Continuous Rotation Servo",
-  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.CRServo;\n\n@TeleOp(name = \"Intake Control\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        CRServo intake = hardwareMap.get(CRServo.class, \"intake\");\n\n        waitForStart();\n\n        while (opModeIsActive()) {\n            // TODO: Set intake power to (right_trigger - left_trigger)\n            //       right_trigger intakes (positive power)\n            //       left_trigger  reverses / ejects (negative power)\n            //       When both are released: power = 0, intake stops\n\n            telemetry.addData(\"Intake power\", intake.getPower());\n            telemetry.update();\n        }\n    }\n}",
-  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.CRServo;\n\n@TeleOp(name = \"Intake Control\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        CRServo intake = hardwareMap.get(CRServo.class, \"intake\");\n\n        waitForStart();\n\n        while (opModeIsActive()) {\n            intake.setPower(gamepad1.right_trigger - gamepad1.left_trigger);\n\n            telemetry.addData(\"Intake power\", intake.getPower());\n            telemetry.update();\n        }\n    }\n}",
+  "testCount": 1,
   "hints": [
     {
       "title": "CRServo vs regular Servo",

@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ChevronRight, ChevronDown, BookOpen, Home, Menu, X, LogIn, LogOut } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { ChevronRight, ChevronDown, BookOpen, Home, Menu, X, LogIn, LogOut, PanelLeftClose, BarChart2 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import type { SidebarModule } from "@/lib/types"
 
@@ -10,6 +11,27 @@ interface SidebarProps {
   modules: SidebarModule[]
   moduleSlug: string
   lessonSlug: string
+  onCollapse?: () => void
+}
+
+function TestIndicator({ progress, testCount }: { progress?: { passed: number; total: number }; testCount: number }) {
+  const passed = progress?.passed ?? 0
+  const total = progress?.total ?? testCount
+
+  let color: string
+  if (total > 0 && passed === total) {
+    color = "text-[var(--color-success)]"
+  } else if (passed > 0) {
+    color = "text-[var(--color-warning)]"
+  } else {
+    color = "text-red-500"
+  }
+
+  return (
+    <span className={`shrink-0 font-mono text-xs ${color}`}>
+      {passed}/{total}
+    </span>
+  )
 }
 
 function UserFooter() {
@@ -83,13 +105,39 @@ function UserFooter() {
   )
 }
 
-export function Sidebar({ modules, moduleSlug, lessonSlug }: SidebarProps) {
+type TestProgress = Record<string, { passed: number; total: number }>
+
+function loadTestProgress(modules: SidebarModule[]): TestProgress {
+  const result: TestProgress = {}
+  for (const mod of modules) {
+    for (const lesson of mod.lessons) {
+      const key = `ftc-tests:${lesson.moduleSlug}/${lesson.slug}`
+      try {
+        const raw = localStorage.getItem(key)
+        if (raw) result[`${lesson.moduleSlug}/${lesson.slug}`] = JSON.parse(raw)
+      } catch { /* ignore */ }
+    }
+  }
+  return result
+}
+
+export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: SidebarProps) {
+  const { data: session } = useSession()
+  const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(() => {
     const initial = new Set<string>()
     initial.add(moduleSlug)
     return initial
   })
+  const [testProgress, setTestProgress] = useState<TestProgress>({})
+
+  useEffect(() => {
+    setTestProgress(loadTestProgress(modules))
+    const handler = () => setTestProgress(loadTestProgress(modules))
+    window.addEventListener("ftc-tests-updated", handler)
+    return () => window.removeEventListener("ftc-tests-updated", handler)
+  }, [modules])
 
   function toggleModule(slug: string) {
     setExpandedModules((prev) => {
@@ -106,13 +154,22 @@ export function Sidebar({ modules, moduleSlug, lessonSlug }: SidebarProps) {
   const navContent = (
     <nav className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-3">
-        <BookOpen className="h-5 w-5 text-[var(--color-accent)]" />
+        <BookOpen className="h-5 w-5 shrink-0 text-[var(--color-accent)]" />
         <Link
           href="/lessons/introduction"
-          className="text-sm font-bold text-[var(--color-text)]"
+          className="flex-1 text-sm font-bold text-[var(--color-text)]"
         >
           <span className="text-[var(--color-accent)]">Code</span> FTC
         </Link>
+        {onCollapse && (
+          <button
+            onClick={onCollapse}
+            title="Collapse sidebar"
+            className="shrink-0 rounded p-1 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
@@ -120,7 +177,7 @@ export function Sidebar({ modules, moduleSlug, lessonSlug }: SidebarProps) {
           href="/lessons/introduction"
           onClick={() => setMobileOpen(false)}
           className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
-            moduleSlug === "" && lessonSlug === ""
+            moduleSlug === "" && lessonSlug === "" && pathname !== "/progress"
               ? "border-r-2 border-[var(--color-accent)] bg-[var(--color-surface-hover)] text-[var(--color-accent)]"
               : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
           }`}
@@ -128,6 +185,21 @@ export function Sidebar({ modules, moduleSlug, lessonSlug }: SidebarProps) {
           <Home className="h-4 w-4 shrink-0" />
           <span>Introduction</span>
         </Link>
+
+        {session && (
+          <Link
+            href="/progress"
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+              pathname === "/progress"
+                ? "border-r-2 border-[var(--color-accent)] bg-[var(--color-surface-hover)] text-[var(--color-accent)]"
+                : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+            }`}
+          >
+            <BarChart2 className="h-4 w-4 shrink-0" />
+            <span>Progress</span>
+          </Link>
+        )}
 
         {modules.map((mod) => {
           const isExpanded = expandedModules.has(mod.meta.slug)
@@ -156,13 +228,14 @@ export function Sidebar({ modules, moduleSlug, lessonSlug }: SidebarProps) {
                         <Link
                           href={`/lessons/${lesson.moduleSlug}/${lesson.slug}`}
                           onClick={() => setMobileOpen(false)}
-                          className={`block py-1.5 pl-10 pr-4 text-sm transition-colors ${
+                          className={`flex items-center gap-2 py-1.5 pl-10 pr-3 text-sm transition-colors ${
                             isActive
                               ? "border-r-2 border-[var(--color-accent)] bg-[var(--color-surface-hover)] font-medium text-[var(--color-accent)]"
                               : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
                           }`}
                         >
-                          {lesson.title}
+                          <span className="flex-1 truncate">{lesson.title}</span>
+                          {session && <TestIndicator progress={testProgress[`${lesson.moduleSlug}/${lesson.slug}`]} testCount={lesson.testCount} />}
                         </Link>
                       </li>
                     )

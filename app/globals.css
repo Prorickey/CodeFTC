@@ -21,6 +21,10 @@ html {
   color-scheme: dark;
 }
 
+button, [role="button"], a {
+  cursor: pointer;
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-text);

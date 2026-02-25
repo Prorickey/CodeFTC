@@ -1,7 +1,6 @@
 {
   "title": "Iterative OpMode: The OpMode Lifecycle",
-  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.OpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"My Iterative OpMode\")\npublic class StudentCode extends OpMode {\n\n    DcMotor driveMotor;\n\n    @Override\n    public void init() {\n        // TODO: Get driveMotor from hardwareMap using DcMotor.class and name \"driveMotor\"\n\n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n    }\n\n    @Override\n    public void loop() {\n        // TODO: Set driveMotor power to -gamepad1.left_stick_y\n        //       (negate Y because up on the stick is -1.0 in FTC)\n\n        telemetry.addData(\"Power\", driveMotor.getPower());\n        telemetry.update();\n    }\n}",
-  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.OpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"My Iterative OpMode\")\npublic class StudentCode extends OpMode {\n\n    DcMotor driveMotor;\n\n    @Override\n    public void init() {\n        driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n\n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n    }\n\n    @Override\n    public void loop() {\n        driveMotor.setPower(-gamepad1.left_stick_y);\n\n        telemetry.addData(\"Power\", driveMotor.getPower());\n        telemetry.update();\n    }\n}",
+  "testCount": 1,
   "hints": [
     {
       "title": "No waitForStart() needed",

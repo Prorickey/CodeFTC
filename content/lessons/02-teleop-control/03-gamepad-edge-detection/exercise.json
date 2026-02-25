@@ -1,7 +1,6 @@
 {
   "title": "Gamepad Edge Detection",
-  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.Servo;\n\n@TeleOp(name = \"Toggle Servo\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        // TODO: Get a Servo from hardwareMap named \"clawServo\"\n        \n        waitForStart();\n        \n        // TODO: Create a boolean variable clawOpen, initially false\n        \n        // TODO: If gamepad1.a is pressed, set clawOpen to true\n        \n        // TODO: If clawOpen is true, set servo position to 1.0\n        //       Otherwise, set servo position to 0.0\n    }\n}",
-  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.Servo;\n\n@TeleOp(name = \"Toggle Servo\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        Servo clawServo = hardwareMap.get(Servo.class, \"clawServo\");\n        \n        waitForStart();\n        \n        boolean clawOpen = false;\n        \n        if (gamepad1.a) {\n            clawOpen = !clawOpen;\n        }\n        \n        if (clawOpen) {\n            clawServo.setPosition(1.0);\n        } else {\n            clawServo.setPosition(0.0);\n        }\n    }\n}",
+  "testCount": 1,
   "hints": [
     {
       "title": "How to toggle a boolean",

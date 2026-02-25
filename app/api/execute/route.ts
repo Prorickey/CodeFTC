@@ -4,6 +4,8 @@ import { join } from "node:path"
 import { executeCode } from "@/lib/compiler"
 import { auth } from "@/auth"
 import { recordEvent } from "@/lib/analytics"
+import { prisma } from "@/lib/prisma"
+import { getDailyRunLimit } from "@/lib/siteConfig"
 import type { Exercise, ExecutionResult } from "@/lib/types"
 
 export async function POST(request: Request) {
@@ -16,6 +18,29 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Rate-limit check: count today's code_run events for this user
+    const [dailyRunLimit, todayRunCount] = await Promise.all([
+      getDailyRunLimit(),
+      prisma.analyticsEvent.count({
+        where: {
+          type: "code_run",
+          userId: session.user.id,
+          createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        },
+      }),
+    ])
+
+    if (todayRunCount >= dailyRunLimit) {
+      return NextResponse.json(
+        {
+          success: false,
+          compilationError: `Daily run limit reached (${dailyRunLimit} runs/day). Try again tomorrow.`,
+          testResults: [],
+        },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { code, lessonId } = body as { code: string; lessonId: string }
 
@@ -47,7 +72,8 @@ export async function POST(request: Request) {
 
     const result: ExecutionResult = await executeCode(code, exercise, lessonId)
 
-    await recordEvent({ type: "code_run", lessonId, userId: session.user.id })
+    const recorded = await recordEvent({ type: "code_run", lessonId, userId: session.user.id })
+    if (!recorded) console.error("[execute] Failed to record code_run event for user", session.user.id)
     if (result.testResults.length > 0 && result.testResults.every((t) => t.passed)) {
       await recordEvent({ type: "exercise_complete", lessonId, userId: session.user.id })
     }

@@ -10,13 +10,21 @@ export interface LessonMeta {
   slug: string
   moduleSlug: string
   order: number
+  testCount: number
   description?: string
 }
 
 export interface Exercise {
   title: string
+  testCount: number
   starterCode: string
   solutionCode: string
+  hints: { title: string; content: string }[]
+}
+
+export interface ExerciseFile {
+  title: string
+  testCount: number
   hints: { title: string; content: string }[]
 }
 

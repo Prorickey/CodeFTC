@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
@@ -48,11 +49,63 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-3 text-sm font-semibold text-[#888] uppercase tracking-wider">{children}</h2>
 }
 
-export function AdminDashboard({ data }: { data: AnalyticsData }) {
+function RateLimitSettings({ initialLimit }: { initialLimit: number }) {
+  const [limit, setLimit] = useState(String(initialLimit))
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+
+  async function handleSave() {
+    const val = parseInt(limit, 10)
+    if (!Number.isInteger(val) || val < 1) return
+    setStatus("saving")
+    try {
+      const res = await fetch("/api/admin/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dailyRunLimit: val }),
+      })
+      setStatus(res.ok ? "saved" : "error")
+    } catch {
+      setStatus("error")
+    }
+    setTimeout(() => setStatus("idle"), 2500)
+  }
+
+  return (
+    <div className="rounded-lg border border-[#2a2a2a] bg-[#141414] p-5">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#888]">Rate Limits</p>
+      <div className="flex items-center gap-3">
+        <div>
+          <label className="mb-1 block text-xs text-[#888]">Daily run limit per user</label>
+          <input
+            type="number"
+            min={1}
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+            className="w-32 rounded-md border border-[#2a2a2a] bg-[#0a0a0a] px-3 py-1.5 text-sm text-[#ededed] focus:border-[#3b82f6] focus:outline-none"
+          />
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={status === "saving"}
+          className="mt-5 rounded-md bg-[#3b82f6] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:brightness-110 disabled:opacity-60"
+        >
+          {status === "saving" ? "Saving…" : "Save"}
+        </button>
+        {status === "saved" && <span className="mt-5 text-xs text-[#22c55e]">Saved</span>}
+        {status === "error"  && <span className="mt-5 text-xs text-red-400">Error saving</span>}
+      </div>
+    </div>
+  )
+}
+
+export function AdminDashboard({ data, dailyRunLimit }: { data: AnalyticsData; dailyRunLimit: number }) {
   const { stats, userGrowth, dau30, codeRuns30, topLessonsByViews, exerciseCompletionRate, authProviderBreakdown, recentUsers } = data
 
   return (
     <div className="space-y-8">
+      {/* Settings */}
+      <RateLimitSettings initialLimit={dailyRunLimit} />
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Total Users" value={stats.totalUsers} />

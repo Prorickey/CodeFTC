@@ -56,6 +56,7 @@ export const ModelName = {
   AnalyticsEvent: 'AnalyticsEvent',
   Account: 'Account',
   Session: 'Session',
+  SiteConfig: 'SiteConfig',
   VerificationToken: 'VerificationToken'
 } as const
 
@@ -140,6 +141,15 @@ export const SessionScalarFieldEnum = {
 } as const
 
 export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
+
+
+export const SiteConfigScalarFieldEnum = {
+  key: 'key',
+  value: 'value',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SiteConfigScalarFieldEnum = (typeof SiteConfigScalarFieldEnum)[keyof typeof SiteConfigScalarFieldEnum]
 
 
 export const VerificationTokenScalarFieldEnum = {
