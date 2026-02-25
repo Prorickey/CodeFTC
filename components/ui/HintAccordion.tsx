@@ -10,9 +10,10 @@ interface Hint {
 
 interface HintAccordionProps {
   hints: Hint[]
+  onHintOpen?: (index: number) => void
 }
 
-export function HintAccordion({ hints }: HintAccordionProps) {
+export function HintAccordion({ hints, onHintOpen }: HintAccordionProps) {
   const [openIndices, setOpenIndices] = useState<Set<number>>(new Set())
 
   function toggle(index: number) {
@@ -22,6 +23,7 @@ export function HintAccordion({ hints }: HintAccordionProps) {
         next.delete(index)
       } else {
         next.add(index)
+        onHintOpen?.(index)
       }
       return next
     })

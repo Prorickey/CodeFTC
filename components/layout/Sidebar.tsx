@@ -2,13 +2,85 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ChevronRight, ChevronDown, BookOpen, Home, Menu, X } from "lucide-react"
+import { ChevronRight, ChevronDown, BookOpen, Home, Menu, X, LogIn, LogOut } from "lucide-react"
+import { useSession, signOut } from "next-auth/react"
 import type { SidebarModule } from "@/lib/types"
 
 interface SidebarProps {
   modules: SidebarModule[]
   moduleSlug: string
   lessonSlug: string
+}
+
+function UserFooter() {
+  const { data: session, status } = useSession()
+  const [signingOut, setSigningOut] = useState(false)
+
+  if (status === "loading") {
+    return (
+      <div className="border-t border-[var(--color-border)] p-3">
+        <div className="h-10 animate-pulse rounded-lg bg-[var(--color-surface-hover)]" />
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="border-t border-[var(--color-border)] p-3">
+        <Link
+          href="/auth/signin"
+          className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+        >
+          <LogIn className="h-4 w-4 shrink-0" />
+          <span>Sign in</span>
+        </Link>
+      </div>
+    )
+  }
+
+  const { user } = session
+
+  return (
+    <div className="border-t border-[var(--color-border)] p-3">
+      <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
+        {user?.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.image}
+            alt={user.name ?? "User avatar"}
+            className="h-8 w-8 shrink-0 rounded-full ring-1 ring-[var(--color-border)]"
+          />
+        ) : (
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/20 text-xs font-bold text-[var(--color-accent)] ring-1 ring-[var(--color-border)]">
+            {(user?.name ?? user?.email ?? "?")[0].toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          {user?.name && (
+            <p className="truncate text-sm font-medium text-[var(--color-text)]">
+              {user.name}
+            </p>
+          )}
+          {user?.email && (
+            <p className="truncate text-xs text-[var(--color-text-muted)]">
+              {user.email}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={async () => {
+            setSigningOut(true)
+            await signOut({ redirectTo: "/lessons/introduction" })
+          }}
+          disabled={signingOut}
+          title="Sign out"
+          className="shrink-0 rounded p-1 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] disabled:opacity-50"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export function Sidebar({ modules, moduleSlug, lessonSlug }: SidebarProps) {
@@ -101,6 +173,8 @@ export function Sidebar({ modules, moduleSlug, lessonSlug }: SidebarProps) {
           )
         })}
       </div>
+
+      <UserFooter />
     </nav>
   )
 

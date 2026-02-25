@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { LessonLayout } from "@/components/layout/LessonLayout"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { LessonContent } from "@/components/lesson/LessonContent"
@@ -16,10 +16,26 @@ interface LessonPageProps {
   modules: SidebarModule[]
   moduleSlug: string
   lessonSlug: string
+  isAuthenticated: boolean
+  userId: string | null
+}
+
+function getLessonId(moduleSlug: string, lessonSlug: string) {
+  return `${moduleSlug}/${lessonSlug}`
 }
 
 function getStorageKey(moduleSlug: string, lessonSlug: string) {
-  return `ftc-code:${moduleSlug}/${lessonSlug}`
+  return `ftc-code:${getLessonId(moduleSlug, lessonSlug)}`
+}
+
+// Debounce helper
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
 }
 
 export function LessonPage({
@@ -27,30 +43,110 @@ export function LessonPage({
   modules,
   moduleSlug,
   lessonSlug,
+  isAuthenticated,
+  userId,
 }: LessonPageProps) {
+  const lessonId = getLessonId(moduleSlug, lessonSlug)
+  const storageKey = getStorageKey(moduleSlug, lessonSlug)
+
   const [code, setCode] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(getStorageKey(moduleSlug, lessonSlug))
+      const saved = localStorage.getItem(storageKey)
       if (saved) return saved
     }
     return data.exercise.starterCode
   })
   const [result, setResult] = useState<ExecutionResult | null>(null)
   const [isRunning, setIsRunning] = useState(false)
+  const [showingSolution, setShowingSolution] = useState(false)
 
-  // Save code to localStorage
-  useEffect(() => {
-    const key = getStorageKey(moduleSlug, lessonSlug)
-    localStorage.setItem(key, code)
-  }, [code, moduleSlug, lessonSlug])
+  // Track whether we've loaded from the DB yet to avoid overwriting with stale localStorage
+  const dbLoadedRef = useRef(false)
+  const prevLessonIdRef = useRef(lessonId)
 
-  // Reset state when navigating between lessons
+  // Save to localStorage on every code change
   useEffect(() => {
-    const saved = localStorage.getItem(getStorageKey(moduleSlug, lessonSlug))
-    setCode(saved ?? data.exercise.starterCode)
+    localStorage.setItem(storageKey, code)
+  }, [code, storageKey])
+
+  // Debounced save to DB for logged-in users
+  const debouncedCode = useDebounce(code, 1500)
+  const lastSavedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!userId || !dbLoadedRef.current) return
+    if (debouncedCode === lastSavedRef.current) return
+    lastSavedRef.current = debouncedCode
+    fetch("/api/progress", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lessonId, code: debouncedCode }),
+    }).catch(() => {})
+  }, [debouncedCode, lessonId, userId])
+
+  // When navigating between lessons, reset state and load saved code
+  useEffect(() => {
+    if (prevLessonIdRef.current === lessonId) return
+    prevLessonIdRef.current = lessonId
+    dbLoadedRef.current = false
+    lastSavedRef.current = null
     setResult(null)
     setIsRunning(false)
-  }, [moduleSlug, lessonSlug, data.exercise.starterCode])
+    setShowingSolution(false)
+
+    // Load code: start with localStorage, then fetch DB if logged in
+    const localSaved = localStorage.getItem(storageKey)
+    setCode(localSaved ?? data.exercise.starterCode)
+
+    if (userId) {
+      fetch(`/api/progress?lessonId=${encodeURIComponent(lessonId)}`)
+        .then((r) => r.json())
+        .then(({ code: dbCode }: { code: string | null }) => {
+          if (dbCode !== null) {
+            setCode(dbCode)
+            localStorage.setItem(storageKey, dbCode)
+          }
+          dbLoadedRef.current = true
+          lastSavedRef.current = dbCode ?? (localSaved ?? data.exercise.starterCode)
+        })
+        .catch(() => { dbLoadedRef.current = true })
+    } else {
+      dbLoadedRef.current = true
+    }
+  }, [lessonId, storageKey, data.exercise.starterCode, userId])
+
+  // Load from DB on first mount for logged-in users
+  useEffect(() => {
+    if (!userId) {
+      dbLoadedRef.current = true
+      return
+    }
+    fetch(`/api/progress?lessonId=${encodeURIComponent(lessonId)}`)
+      .then((r) => r.json())
+      .then(({ code: dbCode }: { code: string | null }) => {
+        if (dbCode !== null) {
+          setCode(dbCode)
+          localStorage.setItem(storageKey, dbCode)
+        }
+        dbLoadedRef.current = true
+        lastSavedRef.current = dbCode ?? code
+      })
+      .catch(() => { dbLoadedRef.current = true })
+    // Only run once on mount — intentional empty-ish deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function trackEvent(type: string, extra?: Record<string, unknown>) {
+    fetch("/api/analytics/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, lessonId, ...extra }),
+    }).catch(() => {})
+  }
+
+  useEffect(() => {
+    trackEvent("lesson_view")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleSlug, lessonSlug])
 
   const handleRun = useCallback(async () => {
     setIsRunning(true)
@@ -60,12 +156,8 @@ export function LessonPage({
       const response = await fetch("/api/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          lessonId: `${moduleSlug}/${lessonSlug}`,
-        }),
+        body: JSON.stringify({ code, lessonId }),
       })
-
       const data = await response.json()
       setResult(data as ExecutionResult)
     } catch (err) {
@@ -78,17 +170,35 @@ export function LessonPage({
     } finally {
       setIsRunning(false)
     }
-  }, [code, moduleSlug, lessonSlug])
+  }, [code, lessonId])
 
   const handleReset = useCallback(() => {
     setCode(data.exercise.starterCode)
     setResult(null)
-    localStorage.removeItem(getStorageKey(moduleSlug, lessonSlug))
-  }, [data.exercise.starterCode, moduleSlug, lessonSlug])
+    setShowingSolution(false)
+    localStorage.removeItem(storageKey)
+    lastSavedRef.current = data.exercise.starterCode
+    if (userId) {
+      fetch("/api/progress", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId, code: data.exercise.starterCode }),
+      }).catch(() => {})
+    }
+  }, [data.exercise.starterCode, storageKey, lessonId, userId])
 
-  const handleShowSolution = useCallback(() => {
-    setCode(data.exercise.solutionCode)
-  }, [data.exercise.solutionCode])
+  const handleToggleSolution = useCallback(() => {
+    setShowingSolution((prev) => {
+      if (!prev) trackEvent("solution_view")
+      return !prev
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleHintOpen = useCallback((index: number) => {
+    trackEvent("hint_view", { hintIndex: index })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -105,7 +215,7 @@ export function LessonPage({
                 <LessonContent content={data.content} />
                 {data.exercise.hints.length > 0 && (
                   <div className="px-6 pb-4 lg:px-8">
-                    <HintAccordion hints={data.exercise.hints} />
+                    <HintAccordion hints={data.exercise.hints} onHintOpen={handleHintOpen} />
                   </div>
                 )}
               </div>
@@ -117,13 +227,20 @@ export function LessonPage({
               <EditorToolbar
                 onRun={handleRun}
                 onReset={handleReset}
-                onShowSolution={handleShowSolution}
+                onToggleSolution={handleToggleSolution}
+                showingSolution={showingSolution}
                 isRunning={isRunning}
+                isAuthenticated={isAuthenticated}
               />
-              <div className="flex-1 overflow-hidden">
-                <CodeEditor value={code} onChange={setCode} />
+              <div className="relative flex-1 overflow-hidden">
+                <div className={`absolute inset-0 ${showingSolution ? "invisible pointer-events-none" : ""}`}>
+                  <CodeEditor value={code} onChange={setCode} />
+                </div>
+                <div className={`absolute inset-0 ${showingSolution ? "" : "invisible pointer-events-none"}`}>
+                  <CodeEditor value={data.exercise.solutionCode} onChange={() => {}} readOnly />
+                </div>
               </div>
-              <div className="h-[200px] shrink-0 overflow-y-auto border-t border-[var(--color-border)]">
+              <div className={`h-[200px] shrink-0 overflow-y-auto border-t border-[var(--color-border)] ${showingSolution ? "hidden" : ""}`}>
                 <OutputPanel result={result} isRunning={isRunning} />
               </div>
             </>

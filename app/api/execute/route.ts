@@ -2,9 +2,19 @@ import { NextResponse } from "next/server"
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { executeCode } from "@/lib/compiler"
+import { auth } from "@/auth"
+import { recordEvent } from "@/lib/analytics"
 import type { Exercise, ExecutionResult } from "@/lib/types"
 
 export async function POST(request: Request) {
+  const session = await auth()
+  if (!session) {
+    return NextResponse.json(
+      { success: false, compilationError: "Sign in to run code", testResults: [] },
+      { status: 401 }
+    )
+  }
+
   try {
     const body = await request.json()
     const { code, lessonId } = body as { code: string; lessonId: string }
@@ -36,6 +46,12 @@ export async function POST(request: Request) {
     }
 
     const result: ExecutionResult = await executeCode(code, exercise)
+
+    await recordEvent({ type: "code_run", lessonId, userId: session.user.id })
+    if (result.testResults.length > 0 && result.testResults.every((t) => t.passed)) {
+      await recordEvent({ type: "exercise_complete", lessonId, userId: session.user.id })
+    }
+
     return NextResponse.json(result)
   } catch (err) {
     console.error("Execute error:", err)

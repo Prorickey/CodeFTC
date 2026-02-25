@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { getLessonData, getModules } from "@/lib/lessons"
+import { auth } from "@/auth"
 import { LessonPage } from "./LessonPage"
 
 interface Props {
@@ -11,13 +12,15 @@ interface Props {
 
 export default async function LessonRoute({ params }: Props) {
   const { moduleSlug, lessonSlug } = await params
-  const data = await getLessonData(moduleSlug, lessonSlug)
+  const [data, modules, session] = await Promise.all([
+    getLessonData(moduleSlug, lessonSlug),
+    getModules(),
+    auth(),
+  ])
 
   if (!data) {
     notFound()
   }
-
-  const modules = await getModules()
 
   return (
     <LessonPage
@@ -25,6 +28,8 @@ export default async function LessonRoute({ params }: Props) {
       modules={modules}
       moduleSlug={moduleSlug}
       lessonSlug={lessonSlug}
+      isAuthenticated={!!session}
+      userId={session?.user?.id ?? null}
     />
   )
 }

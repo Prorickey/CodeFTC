@@ -18,15 +18,17 @@ interface CodeEditorProps {
   value: string
   onChange: (value: string) => void
   language?: string
+  readOnly?: boolean
 }
 
 export function CodeEditor({
   value,
   onChange,
   language = "java",
+  readOnly = false,
 }: CodeEditorProps) {
   return (
-    <div className="h-full w-full">
+    <div className="relative h-full w-full">
       <MonacoEditor
         language={language}
         theme="vs-dark"
@@ -44,8 +46,15 @@ export function CodeEditor({
           wordWrap: "on",
           bracketPairColorization: { enabled: true },
           suggest: { showKeywords: true },
+          readOnly,
+          domReadOnly: readOnly,
         }}
       />
+      {readOnly && (
+        <div className="pointer-events-none absolute right-3 top-3 rounded border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-2 py-0.5 text-xs text-[var(--color-warning)]">
+          Solution — read only
+        </div>
+      )}
     </div>
   )
 }
