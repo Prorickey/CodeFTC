@@ -1,34 +1,7 @@
 {
   "title": "IMU Basics",
-  "className": "StudentCode",
   "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.hardware.rev.RevHubOrientationOnRobot;\nimport com.qualcomm.robotcore.hardware.IMU;\nimport org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;\nimport org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;\n\n@TeleOp(name = \"IMU Basics\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        // TODO: Get the IMU from the hardware map\n        //       IMU imu = hardwareMap.get(IMU.class, \"imu\");\n        \n        // TODO: Create IMU.Parameters with RevHubOrientationOnRobot\n        //       Logo facing UP, USB facing FORWARD\n        \n        // TODO: Initialize the IMU with the parameters\n        //       imu.initialize(parameters);\n        \n        telemetry.addData(\"Status\", \"IMU Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: Get the robot's yaw/pitch/roll angles\n        //       YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();\n        \n        // TODO: Read the yaw (heading) in degrees\n        //       double heading = angles.getYaw(AngleUnit.DEGREES);\n        \n        // TODO: Display the heading on telemetry with caption \"Heading\"\n        //       Don't forget telemetry.update()!\n    }\n}",
   "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.hardware.rev.RevHubOrientationOnRobot;\nimport com.qualcomm.robotcore.hardware.IMU;\nimport org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;\nimport org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;\n\n@TeleOp(name = \"IMU Basics\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        IMU imu = hardwareMap.get(IMU.class, \"imu\");\n        \n        IMU.Parameters parameters = new IMU.Parameters(\n            new RevHubOrientationOnRobot(\n                RevHubOrientationOnRobot.LogoFacingDirection.UP,\n                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD\n            )\n        );\n        \n        imu.initialize(parameters);\n        \n        telemetry.addData(\"Status\", \"IMU Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();\n        double heading = angles.getYaw(AngleUnit.DEGREES);\n        \n        telemetry.addData(\"Heading\", heading);\n        telemetry.update();\n    }\n}",
-  "hardwareConfig": {
-    "sensors": {
-      "imu": {
-        "type": "IMU",
-        "yaw": 45.0
-      }
-    }
-  },
-  "tests": [
-    {
-      "type": "method_call",
-      "name": "waitForStart() is called",
-      "method": "waitForStart",
-      "assertion": "called"
-    },
-    {
-      "type": "telemetry_contains",
-      "name": "Telemetry displays 'Heading' caption",
-      "contains": "Heading"
-    },
-    {
-      "type": "telemetry_contains",
-      "name": "Telemetry displays the heading value 45",
-      "contains": "45"
-    }
-  ],
   "hints": [
     {
       "title": "Getting the IMU from the hardware map",

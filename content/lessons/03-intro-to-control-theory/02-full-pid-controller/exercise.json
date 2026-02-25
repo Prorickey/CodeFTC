@@ -1,31 +1,7 @@
 {
   "title": "Full PID Controller",
-  "className": "StudentCode",
   "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"PID Controller\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor testMotor = hardwareMap.get(DcMotor.class, \"testMotor\");\n        \n        int targetPosition = 1000;\n        double Kp = 0.001;\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.addData(\"Target\", targetPosition);\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: Get the current position from the motor encoder\n        //       Hint: use testMotor.getCurrentPosition()\n        \n        // TODO: Calculate the error (target - current position)\n        \n        // TODO: Calculate the P term (Kp * error)\n        \n        // TODO: Set the motor power to the P term\n        //       In a full PID, this would be pTerm + iTerm + dTerm\n        \n        telemetry.addData(\"Target\", targetPosition);\n        telemetry.addData(\"Current\", \"your current position variable here\");\n        telemetry.addData(\"Error\", \"your error variable here\");\n        telemetry.addData(\"Power\", \"your power variable here\");\n        telemetry.update();\n    }\n}",
   "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"PID Controller\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor testMotor = hardwareMap.get(DcMotor.class, \"testMotor\");\n        \n        int targetPosition = 1000;\n        double Kp = 0.001;\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.addData(\"Target\", targetPosition);\n        telemetry.update();\n        \n        waitForStart();\n        \n        int currentPosition = testMotor.getCurrentPosition();\n        \n        double error = targetPosition - currentPosition;\n        \n        double power = Kp * error;\n        \n        testMotor.setPower(power);\n        \n        telemetry.addData(\"Target\", targetPosition);\n        telemetry.addData(\"Current\", currentPosition);\n        telemetry.addData(\"Error\", error);\n        telemetry.addData(\"Power\", power);\n        telemetry.update();\n    }\n}",
-  "hardwareConfig": {
-    "motors": {
-      "testMotor": {
-        "type": "DcMotor",
-        "currentPosition": 300
-      }
-    }
-  },
-  "tests": [
-    {
-      "type": "method_call",
-      "name": "waitForStart() is called",
-      "method": "waitForStart",
-      "assertion": "called"
-    },
-    {
-      "type": "motor_power",
-      "name": "Motor power is approximately 0.7 (Kp * error = 0.001 * 700)",
-      "device": "testMotor",
-      "expected": 0.7,
-      "tolerance": 0.05
-    }
-  ],
   "hints": [
     {
       "title": "How to read the encoder position",

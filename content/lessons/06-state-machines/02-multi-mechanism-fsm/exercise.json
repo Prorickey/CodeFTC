@@ -1,45 +1,7 @@
 {
   "title": "Multi-Mechanism FSM",
-  "className": "StudentCode",
   "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.hardware.Servo;\n\n@TeleOp(name = \"Multi-Mechanism FSM\")\npublic class StudentCode extends LinearOpMode {\n\n    enum LiftState {\n        IDLE,\n        RAISING\n    }\n\n    enum ClawState {\n        CLOSED,\n        OPEN\n    }\n\n    @Override\n    public void runOpMode() {\n        DcMotor liftMotor = hardwareMap.get(DcMotor.class, \"liftMotor\");\n        Servo clawServo = hardwareMap.get(Servo.class, \"clawServo\");\n\n        LiftState liftState = LiftState.IDLE;\n        ClawState clawState = ClawState.CLOSED;\n\n        waitForStart();\n\n        // --- Lift FSM ---\n        // TODO: Write a switch statement on liftState.\n        // IDLE case: set lift power to 0.0, if gamepad1.a then transition to RAISING.\n        // RAISING case: set lift power to 1.0.\n\n        // --- Claw FSM ---\n        // TODO: Write a switch statement on clawState.\n        // CLOSED case: set claw position to 0.0, if gamepad1.a then transition to OPEN.\n        // OPEN case: set claw position to 1.0.\n\n        // --- Second iteration (simulates the next loop pass) ---\n        // TODO: Repeat both switch statements so the new states take effect.\n    }\n}",
   "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.hardware.Servo;\n\n@TeleOp(name = \"Multi-Mechanism FSM\")\npublic class StudentCode extends LinearOpMode {\n\n    enum LiftState {\n        IDLE,\n        RAISING\n    }\n\n    enum ClawState {\n        CLOSED,\n        OPEN\n    }\n\n    @Override\n    public void runOpMode() {\n        DcMotor liftMotor = hardwareMap.get(DcMotor.class, \"liftMotor\");\n        Servo clawServo = hardwareMap.get(Servo.class, \"clawServo\");\n\n        LiftState liftState = LiftState.IDLE;\n        ClawState clawState = ClawState.CLOSED;\n\n        waitForStart();\n\n        // --- Lift FSM ---\n        switch (liftState) {\n            case IDLE:\n                liftMotor.setPower(0.0);\n                if (gamepad1.a) {\n                    liftState = LiftState.RAISING;\n                }\n                break;\n            case RAISING:\n                liftMotor.setPower(1.0);\n                break;\n        }\n\n        // --- Claw FSM ---\n        switch (clawState) {\n            case CLOSED:\n                clawServo.setPosition(0.0);\n                if (gamepad1.a) {\n                    clawState = ClawState.OPEN;\n                }\n                break;\n            case OPEN:\n                clawServo.setPosition(1.0);\n                break;\n        }\n\n        // --- Second iteration (simulates the next loop pass) ---\n        switch (liftState) {\n            case IDLE:\n                liftMotor.setPower(0.0);\n                if (gamepad1.a) {\n                    liftState = LiftState.RAISING;\n                }\n                break;\n            case RAISING:\n                liftMotor.setPower(1.0);\n                break;\n        }\n\n        switch (clawState) {\n            case CLOSED:\n                clawServo.setPosition(0.0);\n                if (gamepad1.a) {\n                    clawState = ClawState.OPEN;\n                }\n                break;\n            case OPEN:\n                clawServo.setPosition(1.0);\n                break;\n        }\n    }\n}",
-  "hardwareConfig": {
-    "motors": {
-      "liftMotor": {
-        "type": "DcMotor"
-      }
-    },
-    "servos": {
-      "clawServo": {
-        "type": "Servo"
-      }
-    },
-    "gamepad": {
-      "a": true
-    }
-  },
-  "tests": [
-    {
-      "type": "method_call",
-      "name": "waitForStart() is called",
-      "method": "waitForStart",
-      "assertion": "called"
-    },
-    {
-      "type": "motor_power",
-      "name": "Lift motor is at full power (1.0) when gamepad1.a is pressed",
-      "device": "liftMotor",
-      "expected": 1.0,
-      "tolerance": 0.01
-    },
-    {
-      "type": "servo_position",
-      "name": "Claw servo is open (1.0) when gamepad1.a is pressed",
-      "device": "clawServo",
-      "expected": 1.0,
-      "tolerance": 0.01
-    }
-  ],
   "hints": [
     {
       "title": "Structure: two independent switch statements",

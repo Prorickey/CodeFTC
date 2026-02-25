@@ -1,34 +1,7 @@
 {
   "title": "Encoder Basics",
-  "className": "StudentCode",
   "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Encoder Basics\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: Read the current encoder position\n        //       Use driveMotor.getCurrentPosition()\n        \n        // TODO: Display the position on telemetry\n        //       Caption should be \"Position\"\n        //       Don't forget telemetry.update()!\n    }\n}",
   "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Encoder Basics\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        int position = driveMotor.getCurrentPosition();\n        \n        telemetry.addData(\"Position\", position);\n        telemetry.update();\n    }\n}",
-  "hardwareConfig": {
-    "motors": {
-      "driveMotor": {
-        "type": "DcMotor",
-        "currentPosition": 537
-      }
-    }
-  },
-  "tests": [
-    {
-      "type": "method_call",
-      "name": "waitForStart() is called",
-      "method": "waitForStart",
-      "assertion": "called"
-    },
-    {
-      "type": "telemetry_contains",
-      "name": "Telemetry displays 'Position' caption",
-      "contains": "Position"
-    },
-    {
-      "type": "telemetry_contains",
-      "name": "Telemetry displays the encoder value 537",
-      "contains": "537"
-    }
-  ],
   "hints": [
     {
       "title": "How to read the encoder position",

@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const result: ExecutionResult = await executeCode(code, exercise)
+    const result: ExecutionResult = await executeCode(code, exercise, lessonId)
 
     await recordEvent({ type: "code_run", lessonId, userId: session.user.id })
     if (result.testResults.length > 0 && result.testResults.every((t) => t.passed)) {

@@ -1,30 +1,7 @@
 {
   "title": "Run to Position",
-  "className": "StudentCode",
   "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Run to Position\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n        \n        // TODO: Step 1 - Reset the encoder\n        //       driveMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);\n        \n        // TODO: Step 2 - Set the target position to 1000 ticks\n        //       driveMotor.setTargetPosition(1000);\n        \n        // TODO: Step 3 - Set the run mode to RUN_TO_POSITION\n        //       driveMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);\n        \n        telemetry.addData(\"Status\", \"Ready to move to 1000 ticks\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: Step 4 - Set the motor power to 0.5 to begin moving\n    }\n}",
   "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Run to Position\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n        \n        driveMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);\n        driveMotor.setTargetPosition(1000);\n        driveMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);\n        \n        telemetry.addData(\"Status\", \"Ready to move to 1000 ticks\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        driveMotor.setPower(0.5);\n    }\n}",
-  "hardwareConfig": {
-    "motors": {
-      "driveMotor": {
-        "type": "DcMotor"
-      }
-    }
-  },
-  "tests": [
-    {
-      "type": "method_call",
-      "name": "waitForStart() is called",
-      "method": "waitForStart",
-      "assertion": "called"
-    },
-    {
-      "type": "motor_power",
-      "name": "Motor power is set to 0.5 for RUN_TO_POSITION",
-      "device": "driveMotor",
-      "expected": 0.5,
-      "tolerance": 0.01
-    }
-  ],
   "hints": [
     {
       "title": "Step 1: Resetting the encoder",
