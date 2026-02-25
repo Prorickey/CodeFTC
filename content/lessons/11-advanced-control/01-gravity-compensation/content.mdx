@@ -1,0 +1,153 @@
+---
+title: "Gravity Compensation for Arm Mechanisms"
+description: "Add a cosine feedforward term to counteract gravity on a rotating arm."
+---
+
+# Gravity Compensation for Arm Mechanisms
+
+A rotating arm is one of the most common FTC mechanisms, and one of the trickiest to control well. You might expect a simple P controller to hold the arm at a target angle, but in practice the arm sags. This lesson explains why, and shows you how to fix it with a **gravity feedforward** term.
+
+## Why Pure P Control Fails on Arms
+
+Proportional control works by computing `error = target - current` and applying `power = Kp * error`. When the arm reaches the target, `error = 0` and `power = 0`. The motor stops.
+
+The problem is that a stopped motor on an arm is being acted on by gravity. Gravity exerts a torque that rotates the arm downward. P control only corrects this when the arm has already drifted -- it is always reacting, never preventing. The arm ends up in a constant oscillation: drift down, correct up, overshoot, drift down again.
+
+The root cause is that P control is **reactive** but gravity is **predictable**. If you know the arm's angle, you can calculate exactly how much torque gravity is applying, and add just enough motor power to cancel it before the arm moves at all.
+
+## The Physics: Why Cosine?
+
+Consider an arm attached to a motor. At different angles, gravity has different effects:
+
+- **Horizontal (0°)**: The arm sticks straight out. Gravity pulls the full weight straight down, creating maximum torque. The motor needs maximum compensation.
+- **45° above horizontal**: The arm is partially raised. Gravity's torque component is reduced.
+- **Vertical (90°)**: The arm points straight up. Gravity pulls the arm straight down, directly toward the pivot -- no rotational torque at all. The motor needs zero compensation.
+
+This relationship follows a **cosine** curve. The torque from gravity is proportional to `cos(angle)`:
+
+```
+gravityTorque ∝ cos(armAngle)
+```
+
+So the feedforward term that cancels gravity is:
+
+```
+feedforward = kG * Math.cos(Math.toRadians(armAngleDeg))
+```
+
+Where `kG` is a constant tuned to match your arm's specific mass and length. A heavier or longer arm needs a larger `kG`.
+
+## Combined Controller: P + Gravity Feedforward
+
+The full power command adds P feedback and gravity feedforward together:
+
+```java
+double error       = targetAngle - currentAngle;
+double pTerm       = Kp * error;
+double feedforward = kG * Math.cos(Math.toRadians(currentAngle));
+double power       = pTerm + feedforward;
+```
+
+Now the controller does two things simultaneously:
+
+1. **P term**: Drives the arm toward the target if there is an error.
+2. **Feedforward term**: Continuously cancels gravity regardless of error.
+
+When the arm is at the target (`error = 0`), the P term is zero but the feedforward term is still active, keeping the arm from sagging.
+
+## Reading Arm Angle
+
+In a real robot, you would convert motor encoder ticks to degrees using your gear ratio and encoder CPR. In this lesson's simulation, the encoder position is reported directly in degrees for simplicity:
+
+```java
+double currentAngle = armMotor.getCurrentPosition();   // 1 tick = 1 degree
+```
+
+## Clamping to [-1, 1]
+
+The combined power can exceed the valid range, especially if the arm is far from the target and the feedforward is large. Always clamp:
+
+```java
+power = Math.max(-1.0, Math.min(1.0, power));
+```
+
+## Full Example
+
+```java
+@Override
+public void runOpMode() {
+    DcMotor armMotor = hardwareMap.get(DcMotor.class, "armMotor");
+    armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+    double Kp          = 0.005;
+    double kG          = 0.12;
+    double targetAngle = 90.0;    // Degrees
+
+    waitForStart();
+
+    while (opModeIsActive()) {
+        double currentAngle = armMotor.getCurrentPosition();   // Ticks = degrees here
+        double error        = targetAngle - currentAngle;
+
+        double pTerm       = Kp * error;
+        double feedforward = kG * Math.cos(Math.toRadians(currentAngle));
+        double power       = pTerm + feedforward;
+
+        power = Math.max(-1.0, Math.min(1.0, power));
+
+        armMotor.setPower(power);
+
+        telemetry.addData("Current angle",  currentAngle);
+        telemetry.addData("Error",          error);
+        telemetry.addData("P term",         pTerm);
+        telemetry.addData("Feedforward",    feedforward);
+        telemetry.addData("Power",          power);
+        telemetry.update();
+    }
+
+    armMotor.setPower(0.0);
+}
+```
+
+## Working Through the Numbers
+
+Let's trace through the exercise values to make sure the math is right:
+
+- `currentAngle = 45°`, `targetAngle = 90°`
+- `error = 90 - 45 = 45`
+- `pTerm = 0.005 * 45 = 0.225`
+- `feedforward = 0.12 * cos(45°) = 0.12 * 0.7071 ≈ 0.0849`
+- `power = 0.225 + 0.0849 ≈ 0.31`
+
+The motor receives `≈ 0.31` power -- enough to both counteract gravity and drive the arm toward 90°.
+
+Now consider what happens when the arm reaches 90°:
+
+- `error = 0`
+- `pTerm = 0`
+- `feedforward = 0.12 * cos(90°) = 0.12 * 0.0 = 0`
+- `power = 0`
+
+At 90°, gravity has no torque on the arm, so zero power holds it perfectly. The controller is inherently correct.
+
+## Tuning kG
+
+To find the right `kG`:
+
+1. Set `Kp = 0` temporarily.
+2. Move the arm to 0° (horizontal).
+3. Increase `kG` until the arm just barely holds its position without drifting down.
+4. The motor command at 0° horizontal is `kG * cos(0) = kG * 1.0 = kG` -- so `kG` directly equals the power needed to hold the arm horizontal.
+
+Once `kG` is tuned, restore `Kp` and tune for responsiveness.
+
+## Your Exercise
+
+`armMotor` is currently at position **45** (which equals 45° in this simulation). The target is **90°**. Constants: `Kp = 0.005`, `kG = 0.12`. Compute:
+
+- `error = 90 - 45 = 45`
+- `pTerm = 0.005 * 45 = 0.225`
+- `feedforward = 0.12 * Math.cos(Math.toRadians(45))`
+- `power = pTerm + feedforward`
+
+Clamp to [-1, 1] and call `armMotor.setPower(power)`. The result should be approximately **0.31**.

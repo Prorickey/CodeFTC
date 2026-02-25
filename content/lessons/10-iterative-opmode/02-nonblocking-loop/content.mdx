@@ -1,0 +1,207 @@
+---
+title: "Non-Blocking Patterns in Iterative OpMode"
+description: "Use state variables and ElapsedTime inside loop() instead of blocking with sleep() or while loops."
+---
+
+# Non-Blocking Patterns in Iterative OpMode
+
+The `OpMode` lifecycle gives you a `loop()` method that is called many times per second. This design only works if `loop()` returns quickly every time. If you put a `sleep()` call or a nested `while` loop inside `loop()`, you block the entire system -- the Driver Station thinks the robot has frozen, and no other subsystems can update.
+
+In this lesson you will learn two patterns for implementing time-dependent and sequential behavior in `loop()` without blocking.
+
+## Why Blocking Is a Problem in loop()
+
+Imagine this code inside `loop()`:
+
+```java
+// BAD -- never do this inside loop()
+@Override
+public void loop() {
+    if (gamepad1.a) {
+        motor.setPower(0.8);
+        sleep(1500);          // Blocks for 1.5 seconds!
+        motor.setPower(0.0);
+    }
+}
+```
+
+During the 1.5 second sleep:
+
+- The robot controller cannot respond to gamepad input.
+- Telemetry stops updating.
+- Other systems (sensors, servo updates) are paused.
+- The Driver Station may display a "Not responding" warning.
+
+The fix is to **never block inside loop()**. Instead, use state variables to remember progress across calls.
+
+## Key Insight: loop() Is a Tick, Not an Action
+
+Think of each `loop()` call as one "tick" of a clock. Each tick runs in under a millisecond and immediately returns. Your program's job is to decide, on each tick, what the motors should be doing right now. The state that persists across ticks (like "is the motor currently running?" or "when did we start?") must be stored in instance variables.
+
+## Pattern 1: Timer-Based Non-Blocking Action
+
+Use an `ElapsedTime` instance variable and a boolean flag to track whether a timed action is active:
+
+```java
+ElapsedTime timer   = new ElapsedTime();
+boolean     running = false;
+
+@Override
+public void loop() {
+    // Start the action when 'a' is pressed and it is not already running
+    if (gamepad1.a && !running) {
+        running = true;
+        timer.reset();
+        motor.setPower(0.8);
+    }
+
+    // Stop the action when the timer expires
+    if (running && timer.seconds() > 1.5) {
+        motor.setPower(0.0);
+        running = false;
+    }
+
+    telemetry.addData("Running", running);
+    telemetry.addData("Time",    timer.seconds());
+}
+```
+
+Trace through this:
+
+1. Tick 1: Player presses `a`. `running` becomes `true`, timer resets, motor starts.
+2. Ticks 2 through ~1500: `gamepad1.a && !running` is false (running is true), second check is false (timer < 1.5). Nothing changes. Motor keeps running.
+3. Tick ~1500: `timer.seconds() > 1.5` becomes true. Motor stops. `running` = false.
+4. Player can press `a` again to restart.
+
+Every tick finishes in microseconds. Nothing blocks.
+
+## Pattern 2: Finite State Machine (FSM)
+
+For more complex sequences, a state machine is cleaner than a chain of booleans. Define an `enum` for the possible states, store the current state in an instance variable, and transition between states inside `loop()`.
+
+```java
+enum IntakeState {
+    IDLE,
+    INTAKING,
+    REVERSING
+}
+
+IntakeState intakeState = IntakeState.IDLE;
+ElapsedTime stateTimer  = new ElapsedTime();
+
+@Override
+public void loop() {
+    switch (intakeState) {
+
+        case IDLE:
+            intakeServo.setPower(0.0);
+            if (gamepad1.a) {
+                intakeState = IntakeState.INTAKING;
+                stateTimer.reset();
+            }
+            break;
+
+        case INTAKING:
+            intakeServo.setPower(1.0);
+            // After 2 seconds, auto-reverse briefly
+            if (stateTimer.seconds() > 2.0) {
+                intakeState = IntakeState.REVERSING;
+                stateTimer.reset();
+            }
+            // Or driver manually cancels
+            if (gamepad1.b) {
+                intakeState = IntakeState.IDLE;
+            }
+            break;
+
+        case REVERSING:
+            intakeServo.setPower(-0.5);
+            if (stateTimer.seconds() > 0.3) {
+                intakeState = IntakeState.IDLE;
+            }
+            break;
+    }
+
+    telemetry.addData("Intake state", intakeState);
+}
+```
+
+Each `case` block runs in one tick. Transitions happen by changing `intakeState`. The next tick's `switch` automatically routes to the new state.
+
+This pattern was introduced in the state machines module. Using it inside an iterative `OpMode` is its natural home -- the event-driven lifecycle and FSM design fit perfectly together.
+
+## Comparing the Two Patterns
+
+| | Timer-based (boolean) | FSM (enum) |
+|---|---|---|
+| Best for | Single on/off timed actions | Multi-step sequences, mode switching |
+| Complexity | Low | Medium |
+| Extensibility | Awkward to add more states | Easy to add new states |
+| Readability | Simple | Self-documenting with named states |
+
+Start with the timer-based pattern for simple cases. Move to an FSM when you have more than two states or the transitions become complicated.
+
+## Complete Example: Two-Button Shooter
+
+```java
+@TeleOp(name = "Shooter Demo")
+public class ShooterDemo extends OpMode {
+
+    DcMotorEx flywheel;
+    CRServo   feeder;
+
+    enum ShooterState { OFF, SPINNING_UP, FIRING }
+    ShooterState state = ShooterState.OFF;
+    ElapsedTime  timer = new ElapsedTime();
+
+    @Override
+    public void init() {
+        flywheel = hardwareMap.get(DcMotorEx.class, "flywheel");
+        feeder   = hardwareMap.get(CRServo.class,   "feeder");
+        flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    @Override
+    public void loop() {
+        switch (state) {
+
+            case OFF:
+                flywheel.setVelocity(0);
+                feeder.setPower(0);
+                if (gamepad1.right_bumper) {
+                    state = ShooterState.SPINNING_UP;
+                    timer.reset();
+                }
+                break;
+
+            case SPINNING_UP:
+                flywheel.setVelocity(1800);
+                feeder.setPower(0);
+                // Wait 0.5s for flywheel to reach speed, then fire
+                if (timer.seconds() > 0.5) {
+                    state = ShooterState.FIRING;
+                    timer.reset();
+                }
+                break;
+
+            case FIRING:
+                flywheel.setVelocity(1800);
+                feeder.setPower(1.0);
+                // Feed for 0.3s then return to OFF
+                if (timer.seconds() > 0.3) {
+                    state = ShooterState.OFF;
+                }
+                break;
+        }
+
+        telemetry.addData("State",    state);
+        telemetry.addData("Flywheel", flywheel.getVelocity());
+    }
+}
+```
+
+Pressing `right_bumper` starts the sequence. The FSM handles spin-up timing and feeder activation automatically, all without blocking.
+
+## Your Exercise
+
+Extend `OpMode`. Declare a `CRServo intakeServo` and an `IntakeState` enum with `IDLE` and `INTAKING`. In `init()`, get `intakeServo` from `hardwareMap`. In `loop()`: if `gamepad1.a` is true, set state to `INTAKING` and call `intakeServo.setPower(1.0)`; otherwise set state to `IDLE` and call `intakeServo.setPower(0.0)`. Store the current state in an instance variable and log it to telemetry.

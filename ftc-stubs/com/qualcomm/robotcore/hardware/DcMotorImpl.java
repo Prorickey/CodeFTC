@@ -23,6 +23,7 @@ public class DcMotorImpl implements DcMotor {
     private double power = 0.0;
     private Direction direction = Direction.FORWARD;
     private RunMode mode = RunMode.RUN_WITHOUT_ENCODER;
+    private ZeroPowerBehavior zeroPowerBehavior = ZeroPowerBehavior.FLOAT;
     private int currentPosition = 0;
     private int targetPosition = 0;
     private boolean busy = false;
@@ -53,6 +54,18 @@ public class DcMotorImpl implements DcMotor {
     public Direction getDirection() {
         callLog.add("getDirection()");
         return direction;
+    }
+
+    @Override
+    public void setZeroPowerBehavior(ZeroPowerBehavior behavior) {
+        callLog.add("setZeroPowerBehavior(" + behavior + ")");
+        this.zeroPowerBehavior = behavior;
+    }
+
+    @Override
+    public ZeroPowerBehavior getZeroPowerBehavior() {
+        callLog.add("getZeroPowerBehavior()");
+        return zeroPowerBehavior;
     }
 
     @Override

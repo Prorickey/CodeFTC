@@ -1,0 +1,142 @@
+---
+title: "CRServo: Continuous Rotation Servo"
+description: "Use a continuous rotation servo to power intake wheels and other spinning mechanisms."
+---
+
+# CRServo: Continuous Rotation Servo
+
+Standard servos move to a specific angle and hold it. A continuous rotation servo (CRServo) does something fundamentally different: it spins continuously, like a motor, but uses servo-style wiring and the REV Hub's servo ports. CRServos are a great fit for intake rollers, conveyor belts, and other mechanisms that just need to spin.
+
+## Standard Servo vs. CRServo
+
+| Feature | Servo | CRServo |
+|---|---|---|
+| Control input | Position (0.0 to 1.0) | Power (-1.0 to 1.0) |
+| Output | Holds an angle | Spins continuously |
+| API method | `setPosition(double)` | `setPower(double)` |
+| Use case | Arms, claws, flippers | Intake rollers, belts |
+
+A standard `Servo` has an internal gear and feedback system to hold a target position. A CRServo has neither -- it simply converts your power command into rotation speed and direction. This also means you cannot read back its position.
+
+## The CRServo API
+
+### Getting a CRServo from the Hardware Map
+
+```java
+CRServo intake = hardwareMap.get(CRServo.class, "intake");
+```
+
+The name `"intake"` must match the name configured in the Driver Station's hardware map for the servo port.
+
+### Controlling Power
+
+```java
+intake.setPower(1.0);    // Full speed forward
+intake.setPower(-1.0);   // Full speed reverse (eject)
+intake.setPower(0.0);    // Stop
+intake.setPower(0.5);    // Half speed forward
+```
+
+The power range is exactly **-1.0 to 1.0**, just like `DcMotor.setPower()`.
+
+## Common Use Cases
+
+### Intake Roller
+
+An intake roller pulls game elements into the robot. Forward power intakes; reverse power ejects.
+
+```java
+if (gamepad1.right_bumper) {
+    intake.setPower(1.0);    // Intake
+} else if (gamepad1.left_bumper) {
+    intake.setPower(-1.0);   // Eject
+} else {
+    intake.setPower(0.0);    // Off
+}
+```
+
+### Trigger-Based Control
+
+Triggers give you analog input, which works naturally for intake control. Right trigger intakes, left trigger ejects:
+
+```java
+intake.setPower(gamepad1.right_trigger - gamepad1.left_trigger);
+```
+
+Trigger values are in the range [0.0, 1.0]. The subtraction gives you:
+
+- Right trigger only (`0.8 - 0.0 = 0.8`): intake at 80%
+- Left trigger only (`0.0 - 1.0 = -1.0`): full reverse eject
+- Both triggers held (`0.5 - 0.5 = 0.0`): they cancel out, servo stops
+- Neither trigger (`0.0 - 0.0 = 0.0`): servo stops
+
+This is a compact one-liner that handles all four states cleanly.
+
+## Direction Reversal
+
+If the roller spins the wrong way for your wiring, reverse it without rewiring:
+
+```java
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+
+intake.setDirection(DcMotorSimple.Direction.REVERSE);
+```
+
+`CRServo` uses the same `Direction` enum as `DcMotor`. Set this in `init()` alongside your other hardware setup.
+
+## Full Example: Intake Control in TeleOp
+
+```java
+@Override
+public void runOpMode() {
+    CRServo intake = hardwareMap.get(CRServo.class, "intake");
+
+    // Reverse if roller spins the wrong way
+    // intake.setDirection(DcMotorSimple.Direction.REVERSE);
+
+    telemetry.addData("Status", "Ready");
+    telemetry.update();
+
+    waitForStart();
+
+    while (opModeIsActive()) {
+        // Trigger-based intake control
+        double intakePower = gamepad1.right_trigger - gamepad1.left_trigger;
+        intake.setPower(intakePower);
+
+        telemetry.addData("Intake Power", intakePower);
+        telemetry.addData("Right Trigger", gamepad1.right_trigger);
+        telemetry.addData("Left Trigger",  gamepad1.left_trigger);
+        telemetry.update();
+    }
+}
+```
+
+## Using Multiple CRServos
+
+If your intake uses two rollers on opposite sides of the robot, one will need to be reversed so both push game elements in the same direction:
+
+```java
+CRServo leftIntake  = hardwareMap.get(CRServo.class, "leftIntake");
+CRServo rightIntake = hardwareMap.get(CRServo.class, "rightIntake");
+
+rightIntake.setDirection(DcMotorSimple.Direction.REVERSE);
+
+// Then both can receive the same power command
+double power = gamepad1.right_trigger - gamepad1.left_trigger;
+leftIntake.setPower(power);
+rightIntake.setPower(power);
+```
+
+## CRServo vs. DcMotor: Which Should You Use?
+
+Both can spin continuously, so when do you choose one over the other?
+
+- **Use CRServo** when the mechanism is light, low-torque, and you want to use a servo port (not a motor port). Servo ports can power up to 6 servos independently.
+- **Use DcMotor** when you need more torque, more precise speed control, or you want encoder feedback to know how far it has spun.
+
+For most FTC intake rollers, a CRServo is the right choice -- they are compact, simple, and the servo port is conveniently located on the REV Hub near where the mechanism is mounted.
+
+## Your Exercise
+
+Control a CRServo named `"intake"` with `gamepad1`. Use the trigger-based formula: `intake.setPower(gamepad1.right_trigger - gamepad1.left_trigger)`. In the sandbox, `right_trigger = 0.8` and `left_trigger = 0.0`, so the servo should receive a power command of `0.8 - 0.0 = 0.8`.

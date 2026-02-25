@@ -1,0 +1,163 @@
+---
+title: "IMU-Guided Turning"
+description: "Use the IMU and a P controller to rotate the robot to a precise heading."
+---
+
+# IMU-Guided Turning
+
+Encoder-based turns are a common next step after encoder-based driving, but they have a fundamental weakness: they cannot compensate for wheel slip. If one wheel slips even slightly during the turn, the robot ends up at the wrong heading and every subsequent move is off. The IMU (Inertial Measurement Unit) built into the REV Control Hub measures the robot's actual orientation and lets you close the loop on heading directly.
+
+## Why Encoder Turns Fall Short
+
+When you command each side to drive a calculated arc length, you are assuming the wheels grip the floor perfectly. In practice:
+
+- Carpet fibers, dust, and scoring elements create unpredictable friction.
+- The two wheels may have slightly different diameters.
+- The robot's center of rotation shifts under acceleration.
+
+Even a 1% slip compounds over multiple turns until the robot misses its target by enough to matter. The IMU eliminates all of these problems by directly measuring where the robot is pointing.
+
+## Reading the IMU Heading
+
+The REV Control Hub contains a BNO055 or BHI260 IMU. The FTC SDK exposes it through the `IMU` interface (introduced in SDK 8.1). After initializing the IMU, read the yaw angle like this:
+
+```java
+import com.qualcomm.robotcore.hardware.IMU;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+
+IMU imu = hardwareMap.get(IMU.class, "imu");
+
+// In your turn loop:
+double currentHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+```
+
+**Yaw** is rotation around the vertical axis -- exactly the heading you need for turning. The angle is returned in the range [-180, 180] degrees when you use `AngleUnit.DEGREES`.
+
+## Proportional (P) Control for Turning
+
+A simple and effective turning controller uses proportional feedback:
+
+```
+error      = targetHeading - currentHeading
+correction = Kp * error
+```
+
+- When `error` is large (far from target), `correction` is large -- the robot turns quickly.
+- As the robot approaches the target, `error` shrinks and `correction` decreases -- the robot slows down smoothly.
+- When `error` reaches zero, `correction` is zero -- the motors stop.
+
+`Kp` is the **proportional gain**, a constant you tune for your robot. A typical starting value is `0.02`.
+
+## Applying the Correction to Motors
+
+For an in-place (point) turn, apply the correction differentially: one side drives forward, the other drives backward.
+
+```java
+double leftPower  =  correction;
+double rightPower = -correction;
+```
+
+If `correction` is positive (target is to the right), the left motor drives forward and the right motor drives backward, rotating the robot clockwise.
+
+### Clamping to [-1.0, 1.0]
+
+When the robot starts far from its target, `Kp * error` can exceed 1.0 -- which is an invalid motor power. Always clamp the correction:
+
+```java
+double correction = Kp * error;
+correction = Math.max(-1.0, Math.min(1.0, correction));
+```
+
+## The Turn Loop
+
+Loop until the heading error is small enough -- typically within 2 degrees:
+
+```java
+double targetHeading = 90.0;
+double Kp            = 0.02;
+double threshold     = 2.0;
+
+while (opModeIsActive()) {
+    double currentHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+    double error          = targetHeading - currentHeading;
+
+    // Exit when close enough
+    if (Math.abs(error) < threshold) {
+        break;
+    }
+
+    double correction = Kp * error;
+    correction = Math.max(-1.0, Math.min(1.0, correction));
+
+    leftMotor.setPower( correction);
+    rightMotor.setPower(-correction);
+
+    telemetry.addData("Heading", currentHeading);
+    telemetry.addData("Error",   error);
+    telemetry.addData("Correction", correction);
+    telemetry.update();
+}
+
+leftMotor.setPower(0.0);
+rightMotor.setPower(0.0);
+```
+
+## Full Turn Function Example
+
+For reusable code, wrap the turn in a helper method:
+
+```java
+private void turnToHeading(double targetHeading) {
+    double Kp        = 0.02;
+    double threshold = 2.0;
+
+    while (opModeIsActive()) {
+        double currentHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        double error          = targetHeading - currentHeading;
+
+        if (Math.abs(error) < threshold) {
+            break;
+        }
+
+        double correction = Kp * error;
+        correction = Math.max(-1.0, Math.min(1.0, correction));
+
+        leftMotor.setPower( correction);
+        rightMotor.setPower(-correction);
+
+        telemetry.addData("Target",  targetHeading);
+        telemetry.addData("Current", currentHeading);
+        telemetry.addData("Error",   error);
+        telemetry.update();
+    }
+
+    leftMotor.setPower(0.0);
+    rightMotor.setPower(0.0);
+}
+```
+
+Call it with `turnToHeading(90.0)` from `runOpMode()`.
+
+## Working Through the Math
+
+To understand what the controller does, trace through one iteration:
+
+- Target heading: **90°**
+- IMU reading: **80°** (robot hasn't quite reached 90° yet)
+- `error = 90 - 80 = 10`
+- `correction = 0.02 * 10 = 0.2`
+- `leftMotor.setPower(0.2)`, `rightMotor.setPower(-0.2)` -- robot continues turning right
+- After a few more iterations, `error` drops below 2° and the loop exits
+
+The robot naturally decelerates as it approaches the target. This is the defining advantage of proportional control over open-loop turning.
+
+## Tuning Tips
+
+- If the robot **oscillates** (overshoots, corrects, overshoots again): decrease `Kp` or increase `threshold`.
+- If the robot **stops short** and never quite reaches the target: increase `Kp` slightly.
+- If the robot **vibrates** when stopped: the threshold is too tight; loosen it to 3-5 degrees.
+
+## Your Exercise
+
+Turn right to 90°. The IMU currently reads **80°** (the robot is almost there). Constants: `Kp = 0.02`, `threshold = 2.0`. Implement the P control loop: compute `error = targetHeading - currentHeading`, compute `correction = Kp * error`, clamp it to [-1, 1], and apply it to the motors. With the IMU fixed at 80°, the correction on the first iteration should be `0.02 * (90 - 80) = 0.2`.

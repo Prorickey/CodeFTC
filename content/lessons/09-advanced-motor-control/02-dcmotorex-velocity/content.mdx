@@ -1,0 +1,150 @@
+---
+title: "DcMotorEx: Velocity Control"
+description: "Use DcMotorEx with RUN_USING_ENCODER mode to control motor speed in ticks per second."
+---
+
+# DcMotorEx: Velocity Control
+
+When you call `motor.setPower(0.5)`, you are commanding the motor to use 50% of available voltage. This sounds consistent, but there is a hidden problem: available voltage changes as the battery drains. A 50% power command at 14V drives the wheel faster than at 12V. Over a match, this causes your driving to become inconsistent. `DcMotorEx` solves this by giving you **closed-loop velocity control**.
+
+## The Problem with setPower()
+
+`setPower()` is an open-loop command -- it sets a voltage fraction and hopes for the best. The REV Hub measures nothing about the actual resulting speed. If the battery drops or the robot drives into a slight incline, the motor slows down and your code has no idea.
+
+This matters most in:
+
+- **Autonomous**: a slight speed difference between left and right motors causes the robot to drift.
+- **Shooter flywheels**: ball velocity changes if the motor RPM is inconsistent.
+- **Multi-motor mechanisms**: motors at different positions in the mechanism may need to stay synchronized.
+
+## What Is DcMotorEx?
+
+`DcMotorEx` is an extended interface that wraps `DcMotor` and exposes additional functionality built into the REV Expansion Hub and Control Hub firmware:
+
+- **Velocity control** with a built-in PIDF controller
+- **Reading velocity** in ticks per second
+- **Reading current draw** in amps
+- **External encoder support** (on certain hardware)
+
+Because `DcMotorEx` extends `DcMotor`, every method you already know (`setPower()`, `setMode()`, `getCurrentPosition()`) still works.
+
+## Getting a DcMotorEx Reference
+
+Change the type and the `hardwareMap.get()` call:
+
+```java
+// Standard motor -- no velocity control available
+DcMotor motor = hardwareMap.get(DcMotor.class, "motor");
+
+// Extended motor -- velocity control enabled
+DcMotorEx motor = hardwareMap.get(DcMotorEx.class, "motor");
+```
+
+The motor name in the hardware map (`"motor"`) stays the same. Only the Java type changes.
+
+## Required Run Mode: RUN_USING_ENCODER
+
+Velocity control requires the motor to be in `RUN_USING_ENCODER` mode. This tells the REV Hub firmware to activate its internal PIDF loop, which reads encoder ticks and continuously adjusts voltage to maintain the target speed.
+
+```java
+motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+```
+
+Do **not** use `RUN_WITHOUT_ENCODER` for velocity control -- the PIDF loop won't activate and `setVelocity()` will have no effect.
+
+Also do not confuse this with `RUN_TO_POSITION`. Here is the distinction:
+
+| Mode | What it does |
+|---|---|
+| `RUN_WITHOUT_ENCODER` | Raw voltage control; encoders ignored |
+| `RUN_USING_ENCODER` | Continuous speed control; motor maintains a set velocity |
+| `RUN_TO_POSITION` | Motor drives to a specific tick position, then stops |
+
+## Setting Velocity
+
+```java
+motor.setVelocity(500);   // 500 ticks per second
+```
+
+The unit is **ticks per second**. Positive values drive the motor in the forward direction; negative values drive it in reverse.
+
+### Common Velocity Reference Points
+
+For a goBILDA 5202 312 RPM motor (537.7 ticks per revolution):
+
+```
+Max RPM = 312
+Max ticks/sec = 312 / 60 * 537.7 ≈ 2797 ticks/sec
+
+500  ticks/sec  ≈  17.8% of max speed
+1000 ticks/sec  ≈  35.7% of max speed
+1500 ticks/sec  ≈  53.6% of max speed
+```
+
+Start with a moderate value like 500 and work up as needed.
+
+## Reading Current Velocity
+
+You can read back the motor's actual measured velocity for telemetry or feedback:
+
+```java
+double actualVelocity = motor.getVelocity();   // Returns ticks per second
+telemetry.addData("Target",  500);
+telemetry.addData("Actual",  actualVelocity);
+```
+
+This is useful for debugging: if the actual velocity is consistently much lower than the target, the battery may be too low or the mechanism is mechanically loaded.
+
+## Full Example: Two-Motor Drive with Velocity Control
+
+```java
+@Override
+public void runOpMode() {
+    DcMotorEx leftMotor  = hardwareMap.get(DcMotorEx.class, "leftMotor");
+    DcMotorEx rightMotor = hardwareMap.get(DcMotorEx.class, "rightMotor");
+
+    leftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+
+    leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+    waitForStart();
+
+    leftMotor.setVelocity(500);
+    rightMotor.setVelocity(500);
+
+    while (opModeIsActive()) {
+        telemetry.addData("Left velocity",  leftMotor.getVelocity());
+        telemetry.addData("Right velocity", rightMotor.getVelocity());
+        telemetry.update();
+    }
+
+    leftMotor.setVelocity(0);
+    rightMotor.setVelocity(0);
+}
+```
+
+## Scaling Velocity with Gamepad Input
+
+In teleop, you often want the driver's stick to control speed. You can scale the stick value to a tick-per-second range:
+
+```java
+while (opModeIsActive()) {
+    double stick = -gamepad1.left_stick_y;   // -1.0 to 1.0
+    double maxVelocity = 1500.0;             // Ticks per second at full stick
+
+    leftMotor.setVelocity(stick * maxVelocity);
+    rightMotor.setVelocity(stick * maxVelocity);
+
+    telemetry.addData("Command", stick * maxVelocity);
+    telemetry.addData("Left",   leftMotor.getVelocity());
+    telemetry.addData("Right",  rightMotor.getVelocity());
+    telemetry.update();
+}
+```
+
+The PIDF controller in the hub firmware adjusts voltage automatically to maintain the commanded ticks per second as the battery drains.
+
+## Your Exercise
+
+Retrieve `leftMotor` and `rightMotor` as `DcMotorEx` instances. Set both to `RUN_USING_ENCODER` mode. After `waitForStart()`, command both motors to **500 ticks per second** using `setVelocity()`. Log both `getVelocity()` values to telemetry inside the `while (opModeIsActive())` loop.

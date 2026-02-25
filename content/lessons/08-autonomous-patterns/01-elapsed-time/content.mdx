@@ -1,0 +1,153 @@
+---
+title: "Timer-Based Actions with ElapsedTime"
+description: "Use ElapsedTime instead of sleep() for non-blocking timing in autonomous."
+---
+
+# Timer-Based Actions with ElapsedTime
+
+In autonomous mode your robot needs to perform timed actions -- drive forward for two seconds, wait for a mechanism to extend, and so on. The naive approach is to call `sleep()`, but there is a serious problem with that. In this lesson you will learn to use `ElapsedTime` instead.
+
+## Why `sleep()` Is a Problem
+
+`sleep()` pauses the entire OpMode thread. While the thread is paused, nothing else can run:
+
+- The robot controller cannot check whether `opModeIsActive()` has become false (e.g., a STOP button press).
+- You cannot read sensors or update telemetry.
+- You cannot interleave logic from multiple subsystems.
+
+If the Driver Station sends a stop command while your code is inside a `sleep()` call, the robot keeps moving until the sleep finishes. This is a safety hazard and a source of unpredictable behavior.
+
+```java
+// BAD -- do not do this
+leftMotor.setPower(0.7);
+rightMotor.setPower(0.7);
+sleep(2000);   // Thread is completely blocked for 2 seconds
+leftMotor.setPower(0.0);
+rightMotor.setPower(0.0);
+```
+
+## What Is ElapsedTime?
+
+`ElapsedTime` is a simple wall-clock timer from the `com.qualcomm.robotcore.util` package. It records when it was last reset, and lets you query how much time has elapsed since then in seconds or milliseconds. It does not block anything -- it just answers the question "how long has it been?"
+
+```java
+import com.qualcomm.robotcore.util.ElapsedTime;
+```
+
+### Creating and Resetting the Timer
+
+```java
+ElapsedTime timer = new ElapsedTime();
+```
+
+When you call `new ElapsedTime()`, the timer starts automatically from the moment it is created. To restart the count from zero, call `timer.reset()`.
+
+### Reading the Timer
+
+```java
+double seconds = timer.seconds();          // Elapsed time in seconds (double)
+double millis  = timer.milliseconds();     // Elapsed time in milliseconds (double)
+```
+
+Both methods return a `double`, so you can compare them against fractional values like `2.5` or `0.75`.
+
+## The Non-Blocking Timed-Action Pattern
+
+Instead of sleeping, you combine `timer.seconds()` with `opModeIsActive()` in a `while` loop condition:
+
+```java
+while (opModeIsActive() && timer.seconds() < 2.0) {
+    // Code here runs repeatedly until 2 seconds pass OR stop is pressed
+}
+```
+
+This pattern is safe because:
+
+1. Every iteration checks `opModeIsActive()` -- the robot stops immediately if you press STOP.
+2. The loop exits naturally when the time limit is reached.
+3. You can read sensors, update telemetry, or run other logic inside the loop.
+
+### Always Stop Motors After the Loop
+
+When the loop exits (either because time ran out or because stop was pressed), you must explicitly set motor power to zero. The motors will not stop themselves.
+
+```java
+leftMotor.setPower(0.0);
+rightMotor.setPower(0.0);
+```
+
+## Full Example: Drive Forward for 2 Seconds
+
+Here is a complete timed drive sequence inside `runOpMode()`:
+
+```java
+@Override
+public void runOpMode() {
+    DcMotor leftMotor  = hardwareMap.get(DcMotor.class, "leftMotor");
+    DcMotor rightMotor = hardwareMap.get(DcMotor.class, "rightMotor");
+
+    waitForStart();
+
+    ElapsedTime timer = new ElapsedTime();
+
+    leftMotor.setPower(0.7);
+    rightMotor.setPower(0.7);
+
+    while (opModeIsActive() && timer.seconds() < 2.0) {
+        telemetry.addData("Time", timer.seconds());
+        telemetry.update();
+    }
+
+    leftMotor.setPower(0.0);
+    rightMotor.setPower(0.0);
+}
+```
+
+Notice that `timer.reset()` is not needed here because the timer was just created. If you need to time a second action immediately after the first, call `timer.reset()` before starting the next timed loop.
+
+### Sequencing Multiple Timed Actions
+
+```java
+// Action 1: drive forward for 2 seconds
+ElapsedTime timer = new ElapsedTime();
+leftMotor.setPower(0.7);
+rightMotor.setPower(0.7);
+while (opModeIsActive() && timer.seconds() < 2.0) {
+    telemetry.addData("Phase", "Driving");
+    telemetry.update();
+}
+leftMotor.setPower(0.0);
+rightMotor.setPower(0.0);
+
+// Action 2: wait 0.5 seconds for the robot to settle
+timer.reset();
+while (opModeIsActive() && timer.seconds() < 0.5) {
+    telemetry.addData("Phase", "Settling");
+    telemetry.update();
+}
+
+// Action 3: turn for 1 second
+timer.reset();
+leftMotor.setPower(0.5);
+rightMotor.setPower(-0.5);
+while (opModeIsActive() && timer.seconds() < 1.0) {
+    telemetry.addData("Phase", "Turning");
+    telemetry.update();
+}
+leftMotor.setPower(0.0);
+rightMotor.setPower(0.0);
+```
+
+Each `timer.reset()` restarts the clock for the next action without creating a new object.
+
+## When to Use Timers vs. Encoders
+
+Timer-based driving is simple and requires no sensor setup, but it has a significant weakness: if the battery voltage drops or the robot hits an obstacle, the actual distance traveled will differ from what you expected. Encoders (covered in the next lesson) are far more consistent for distance-critical moves. Use timers when:
+
+- Exact distance does not matter (e.g., pushing a ball off a spot)
+- You are running a mechanism for a fixed duration (e.g., running an intake for 1.5 seconds)
+- You are prototyping quickly before adding encoder feedback
+
+## Your Exercise
+
+Inside `runOpMode()`, after `waitForStart()`, add the timed drive pattern shown above. Create an `ElapsedTime` timer, set both motors to power `0.7`, loop with `opModeIsActive() && timer.seconds() < 2.0` while logging the elapsed time to telemetry, then stop both motors when the loop exits.

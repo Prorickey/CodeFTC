@@ -1,0 +1,174 @@
+---
+title: "Encoder-Driven Autonomous"
+description: "Drive a precise distance by calculating encoder ticks from wheel circumference."
+---
+
+# Encoder-Driven Autonomous
+
+Timer-based driving is convenient, but it is inconsistent. A fully charged battery drives farther in two seconds than a half-depleted one. On competition day, with a fresh battery in a charged-up match, your robot could overshoot every target. Encoders solve this problem by measuring actual wheel rotation, making your autonomous routines repeatable regardless of battery level.
+
+## What Are Encoder Ticks?
+
+Every motor with an encoder has a small magnetic or optical sensor that counts pulses as the motor shaft rotates. These pulses are called **ticks** (also called counts or pulses). When the motor completes one full revolution, the encoder reports exactly **CPR** (Counts Per Revolution) ticks.
+
+### Common CPR Values
+
+Different motors have different gear ratios and encoder resolutions. These are the most common ones in FTC:
+
+| Motor | CPR (ticks per revolution) |
+|---|---|
+| REV HD Hex Motor 40:1 | 1120 |
+| goBILDA 5202 312 RPM | 537.7 |
+| goBILDA 5202 435 RPM | 383.6 |
+| AndyMark NeveRest 20 | 560 |
+
+The CPR already accounts for the gear ratio inside the motor. You do **not** need to multiply by the ratio separately -- the encoder sits on the output shaft.
+
+## Calculating Target Ticks
+
+To drive a specific distance, you need to know how many ticks correspond to that distance. The relationship goes through wheel circumference:
+
+```
+circumference = Math.PI * wheelDiameterCm
+targetTicks   = (int)(distanceCm / circumference * ticksPerRev)
+```
+
+For example, with a 10 cm diameter wheel and a goBILDA 312 RPM motor (537.7 CPR):
+
+```
+circumference = Math.PI * 10.0    = 31.416 cm
+targetTicks   = 60.0 / 31.416 * 537.7
+              = 1.909 * 537.7
+              ≈ 1027 ticks
+```
+
+In code:
+
+```java
+double ticksPerRev      = 537.7;
+double wheelDiameterCm  = 10.0;
+double targetCm         = 60.0;
+
+double circumference = Math.PI * wheelDiameterCm;
+int    targetTicks   = (int)(targetCm / circumference * ticksPerRev);
+```
+
+## The RUN_TO_POSITION Sequence
+
+The FTC SDK provides a built-in way for a motor to drive itself to a target position using an internal PID controller. The sequence has exactly five steps and must be done in order.
+
+### Step 1: Reset the Encoder
+
+```java
+leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+```
+
+This zeroes the tick counter. Without this step, the motor's internal target is relative to wherever the encoder happened to be when the robot powered on -- often a garbage value.
+
+### Step 2: Set the Target Position
+
+```java
+leftMotor.setTargetPosition(targetTicks);
+rightMotor.setTargetPosition(targetTicks);
+```
+
+This tells each motor where it should end up. The motor stores this value but does not move yet.
+
+### Step 3: Switch to RUN_TO_POSITION Mode
+
+```java
+leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+```
+
+In this mode the motor's internal PID controller will automatically adjust power to reach the target. You do not need to implement any feedback yourself.
+
+### Step 4: Set Power Greater Than Zero
+
+```java
+leftMotor.setPower(0.5);
+rightMotor.setPower(0.5);
+```
+
+`RUN_TO_POSITION` requires a non-zero power to actually move. The power value acts as a maximum -- the internal PID may use less power as the motor approaches the target. A value of `0.5` is a good starting point; `0.8` is faster but may overshoot.
+
+### Step 5: Wait for Arrival
+
+```java
+while (opModeIsActive() && (leftMotor.isBusy() || rightMotor.isBusy())) {
+    telemetry.addData("Left ticks",  leftMotor.getCurrentPosition());
+    telemetry.addData("Right ticks", rightMotor.getCurrentPosition());
+    telemetry.update();
+}
+```
+
+`isBusy()` returns `true` while the motor is still moving toward its target. We wait until **both** motors have stopped (the `||` means we wait as long as either one is still running). Including `opModeIsActive()` ensures we exit cleanly if stop is pressed.
+
+### Step 6: Stop the Motors
+
+```java
+leftMotor.setPower(0.0);
+rightMotor.setPower(0.0);
+```
+
+Even after `isBusy()` returns false, calling `setPower(0)` is good practice. It ensures the motors are fully powered off.
+
+## Full Example: Drive Straight 60 cm
+
+```java
+@Override
+public void runOpMode() {
+    DcMotor leftMotor  = hardwareMap.get(DcMotor.class, "leftMotor");
+    DcMotor rightMotor = hardwareMap.get(DcMotor.class, "rightMotor");
+
+    // Configure motor directions so both wheels push forward
+    leftMotor.setDirection(DcMotor.Direction.REVERSE);
+
+    double ticksPerRev     = 537.7;
+    double wheelDiameterCm = 10.0;
+    double targetCm        = 60.0;
+
+    double circumference = Math.PI * wheelDiameterCm;
+    int    targetTicks   = (int)(targetCm / circumference * ticksPerRev);
+
+    waitForStart();
+
+    // Step 1: Reset encoders
+    leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+    // Step 2: Set targets
+    leftMotor.setTargetPosition(targetTicks);
+    rightMotor.setTargetPosition(targetTicks);
+
+    // Step 3: Switch mode
+    leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+    rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+    // Step 4: Apply power
+    leftMotor.setPower(0.5);
+    rightMotor.setPower(0.5);
+
+    // Step 5: Wait until done
+    while (opModeIsActive() && (leftMotor.isBusy() || rightMotor.isBusy())) {
+        telemetry.addData("Left",  leftMotor.getCurrentPosition());
+        telemetry.addData("Right", rightMotor.getCurrentPosition());
+        telemetry.update();
+    }
+
+    // Step 6: Stop
+    leftMotor.setPower(0.0);
+    rightMotor.setPower(0.0);
+}
+```
+
+## Why One Motor Is Reversed
+
+In a standard two-wheel drivetrain, the left and right motors face opposite directions on the robot. If you apply positive power to both, they spin in opposite directions -- one pushes forward and one pushes backward. Reversing one motor's direction setting means that positive power on both motors results in both wheels rolling forward.
+
+Which side to reverse depends on how your motors are physically mounted. The convention in this course is to reverse the **left** side.
+
+## Your Exercise
+
+Drive straight 60 cm. The following constants are provided: `ticksPerRev = 537.7`, `wheelDiameterCm = 10.0`, `targetCm = 60.0`. Complete the full `RUN_TO_POSITION` sequence: reset encoders, set target positions, switch mode, set power, wait for arrival, then stop both motors.

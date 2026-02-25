@@ -1,0 +1,19 @@
+{
+  "title": "DcMotorEx: Velocity Control",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.hardware.DcMotorEx;\n\n@TeleOp(name = \"Velocity Control\")\npublic class StudentCode extends LinearOpMode {\n\n    static final double CRUISE_VELOCITY = 500.0; // ticks per second\n\n    @Override\n    public void runOpMode() {\n        // TODO: Get leftMotor and rightMotor as DcMotorEx (not DcMotor)\n        //       Use: DcMotorEx motor = hardwareMap.get(DcMotorEx.class, \"name\");\n\n        // TODO: Set both motors to RUN_USING_ENCODER mode\n\n        waitForStart();\n\n        // TODO: Set both motors to CRUISE_VELOCITY using setVelocity()\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.hardware.DcMotorEx;\n\n@TeleOp(name = \"Velocity Control\")\npublic class StudentCode extends LinearOpMode {\n\n    static final double CRUISE_VELOCITY = 500.0;\n\n    @Override\n    public void runOpMode() {\n        DcMotorEx leftMotor  = hardwareMap.get(DcMotorEx.class, \"leftMotor\");\n        DcMotorEx rightMotor = hardwareMap.get(DcMotorEx.class, \"rightMotor\");\n\n        leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);\n        rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);\n\n        waitForStart();\n\n        leftMotor.setVelocity(CRUISE_VELOCITY);\n        rightMotor.setVelocity(CRUISE_VELOCITY);\n    }\n}",
+  "hints": [
+    {
+      "title": "Getting a DcMotorEx from hardwareMap",
+      "content": "Use `DcMotorEx motor = hardwareMap.get(DcMotorEx.class, \"motorName\");` — note `DcMotorEx.class` instead of `DcMotor.class`. The hardware map returns the same physical motor, but as the extended interface."
+    },
+    {
+      "title": "Required run mode",
+      "content": "You must set the mode to `RUN_USING_ENCODER` before calling `setVelocity()`. Without this, velocity control has no encoder feedback to work with."
+    },
+    {
+      "title": "What setVelocity() does",
+      "content": "`setVelocity(500)` tells the REV Hub's internal PIDF to maintain exactly 500 encoder ticks per second regardless of battery level. This is more consistent than `setPower()` which varies with voltage."
+    }
+  ]
+}

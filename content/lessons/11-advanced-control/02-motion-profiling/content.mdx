@@ -1,0 +1,197 @@
+---
+title: "Trapezoidal Motion Profiling"
+description: "Smoothly ramp motor power up and down to reduce wheel slip and improve precision."
+---
+
+# Trapezoidal Motion Profiling
+
+When you command a motor from zero to full power instantly, the wheels try to accelerate faster than friction can support -- they slip, lose traction, and your robot ends up somewhere it did not intend to be. At the end of a move, an abrupt stop creates overshoot for the same reason. **Motion profiling** solves both problems by shaping the power command over the course of the move.
+
+## What Is a Trapezoidal Profile?
+
+A trapezoidal motion profile divides a move into three phases:
+
+1. **Acceleration**: Power ramps from minimum to maximum.
+2. **Cruise**: Power holds at maximum.
+3. **Deceleration**: Power ramps back down from maximum to minimum.
+
+On a velocity vs. time graph, this looks like a trapezoid -- flat on top, sloped sides. The slope of the sides determines how quickly the robot accelerates and decelerates.
+
+```
+Power
+  |        ___________
+  |       /           \
+  |      /             \
+  |_____/               \_____
+  |
+  +--accel--+--cruise--+--decel---> Time
+```
+
+## Position-Based vs. Time-Based Profiling
+
+You could implement a trapezoidal profile by measuring elapsed time, but this has the same weakness as raw timer-based driving: if the robot is slowed by friction or a slight incline, the time-based profile will not know. The robot stops the deceleration phase before actually reaching the target.
+
+**Position-based profiling** uses the encoder position to determine which phase the robot is in. This is more reliable: no matter how fast or slow the robot moves, the transitions between phases happen at the correct distances.
+
+The key quantity is **progress**: what fraction of the total distance has been covered?
+
+```java
+double progress = (double) currentTicks / totalTicks;
+```
+
+`progress` goes from 0.0 at the start to 1.0 at the destination.
+
+## Dividing the Path into Zones
+
+Define three fractions that partition the [0, 1] progress range:
+
+```java
+double accelFraction = 0.2;   // First 20% of travel: accelerating
+double decelFraction = 0.2;   // Last 20% of travel: decelerating
+// Middle 60%: cruise at full speed
+```
+
+The cruise zone starts at `accelFraction` and ends at `1.0 - decelFraction`:
+
+```
+[0.0, 0.2)     -- acceleration zone
+[0.2, 0.8]     -- cruise zone
+(0.8, 1.0]     -- deceleration zone
+```
+
+## Computing Power in Each Zone
+
+### Acceleration Zone
+
+Power ramps linearly from `minPower` to `maxPower`:
+
+```java
+double power = minPower + (maxPower - minPower) * (progress / accelFraction);
+```
+
+When `progress = 0`, the fraction `progress / accelFraction = 0`, so `power = minPower`.
+When `progress = accelFraction = 0.2`, the fraction `= 1.0`, so `power = maxPower`.
+
+### Cruise Zone
+
+Power holds at maximum:
+
+```java
+double power = maxPower;
+```
+
+### Deceleration Zone
+
+Power ramps linearly from `maxPower` back to `minPower`. Here we need to know how far we are into the decel zone:
+
+```java
+double power = minPower + (maxPower - minPower) * ((1.0 - progress) / decelFraction);
+```
+
+When `progress = 1.0 - decelFraction = 0.8`, `(1.0 - progress) / decelFraction = 1.0`, so `power = maxPower`.
+When `progress = 1.0`, `(1.0 - 1.0) / 0.2 = 0`, so `power = minPower`.
+
+## The computePower() Helper Method
+
+Putting it all together in a reusable method:
+
+```java
+private double computePower(int currentTicks, int totalTicks, double maxPower) {
+    double minPower      = 0.1;
+    double accelFraction = 0.2;
+    double decelFraction = 0.2;
+
+    if (totalTicks == 0) return 0.0;
+
+    double progress = (double) currentTicks / totalTicks;
+    // Clamp progress to [0, 1] in case of overshoot
+    progress = Math.max(0.0, Math.min(1.0, progress));
+
+    double power;
+
+    if (progress < accelFraction) {
+        // Acceleration zone
+        power = minPower + (maxPower - minPower) * (progress / accelFraction);
+
+    } else if (progress <= 1.0 - decelFraction) {
+        // Cruise zone
+        power = maxPower;
+
+    } else {
+        // Deceleration zone
+        power = minPower + (maxPower - minPower) * ((1.0 - progress) / decelFraction);
+    }
+
+    return power;
+}
+```
+
+## Using computePower() in the Drive Loop
+
+Plug the helper into your `RUN_TO_POSITION` loop. Instead of a fixed power, you update the power on every iteration:
+
+```java
+// After setting up RUN_TO_POSITION and calling setTargetPosition()...
+leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+while (opModeIsActive() && (leftMotor.isBusy() || rightMotor.isBusy())) {
+    int  currentLeft  = Math.abs(leftMotor.getCurrentPosition());
+    int  currentRight = Math.abs(rightMotor.getCurrentPosition());
+    int  avgCurrent   = (currentLeft + currentRight) / 2;
+
+    double power = computePower(avgCurrent, totalTicks, 0.8);
+
+    leftMotor.setPower(power);
+    rightMotor.setPower(power);
+
+    telemetry.addData("Progress", (double) avgCurrent / totalTicks);
+    telemetry.addData("Power",    power);
+    telemetry.update();
+}
+
+leftMotor.setPower(0.0);
+rightMotor.setPower(0.0);
+```
+
+Note: `RUN_TO_POSITION` internally uses its own PID, so setting power dynamically this way acts as a maximum-power override on each iteration, effectively blending the two approaches. For full control, you can alternatively use `RUN_USING_ENCODER` with `setVelocity()` and scale velocity from the same profile.
+
+## Working Through an Example
+
+For the exercise: `currentTicks = 1000`, `totalTicks = 2000`, `maxPower = 0.8`.
+
+```
+progress = 1000 / 2000 = 0.5
+
+accelFraction      = 0.2  → zone ends at progress 0.2
+decelFraction      = 0.2  → zone starts at progress 0.8
+
+0.5 is between 0.2 and 0.8 → cruise zone
+
+power = maxPower = 0.8
+```
+
+The robot is exactly halfway through the path, cruising at full power.
+
+Now trace a point in the acceleration zone: `currentTicks = 200`, `totalTicks = 2000`.
+
+```
+progress = 200 / 2000 = 0.1   (< 0.2, so accel zone)
+power = 0.1 + (0.8 - 0.1) * (0.1 / 0.2)
+      = 0.1 + 0.7 * 0.5
+      = 0.1 + 0.35
+      = 0.45
+```
+
+The robot is 10% through the path and running at 45% power -- halfway up the acceleration ramp.
+
+## Benefits Over Constant Power
+
+- **Less slipping**: The gradual acceleration gives friction time to work.
+- **More consistent stopping**: The deceleration ramp prevents momentum from carrying the robot past the target.
+- **Better sensor readings**: Cameras and distance sensors give cleaner data when the robot is moving smoothly.
+- **Easier to tune**: You only tune two parameters (`accelFraction` and `decelFraction`) rather than a full PID.
+
+## Your Exercise
+
+Implement `computePower(int currentTicks, int totalTicks, double maxPower)` using `accelFraction = 0.2`, `decelFraction = 0.2`, and `minPower = 0.1`. Call it with `currentTicks = 1000` and `totalTicks = 2000`. Since `progress = 0.5` falls in the cruise zone, the method should return `maxPower = 0.8`. Pass that power to `leftMotor.setPower()` and `rightMotor.setPower()`.

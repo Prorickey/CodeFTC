@@ -1,0 +1,19 @@
+{
+  "title": "Zero Power Behavior: BRAKE vs FLOAT",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Drivetrain Setup\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor frontLeft  = hardwareMap.get(DcMotor.class, \"frontLeft\");\n        DcMotor frontRight = hardwareMap.get(DcMotor.class, \"frontRight\");\n        DcMotor backLeft   = hardwareMap.get(DcMotor.class, \"backLeft\");\n        DcMotor backRight  = hardwareMap.get(DcMotor.class, \"backRight\");\n\n        // TODO: Reverse the left-side motors (frontLeft, backLeft)\n        //       so all four motors push the robot in the same direction\n\n        // TODO: Set all four motors to BRAKE zero power behavior\n\n        waitForStart();\n\n        while (opModeIsActive()) {\n            double drive  = -gamepad1.left_stick_y;\n            double strafe =  gamepad1.left_stick_x;\n            double rotate =  gamepad1.right_stick_x;\n\n            // TODO: Set motor powers using mecanum equations:\n            //   frontLeft  = drive + strafe + rotate\n            //   frontRight = drive - strafe - rotate\n            //   backLeft   = drive - strafe + rotate\n            //   backRight  = drive + strafe - rotate\n        }\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Drivetrain Setup\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor frontLeft  = hardwareMap.get(DcMotor.class, \"frontLeft\");\n        DcMotor frontRight = hardwareMap.get(DcMotor.class, \"frontRight\");\n        DcMotor backLeft   = hardwareMap.get(DcMotor.class, \"backLeft\");\n        DcMotor backRight  = hardwareMap.get(DcMotor.class, \"backRight\");\n\n        frontLeft.setDirection(DcMotor.Direction.REVERSE);\n        backLeft.setDirection(DcMotor.Direction.REVERSE);\n\n        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);\n        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);\n        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);\n        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);\n\n        waitForStart();\n\n        while (opModeIsActive()) {\n            double drive  = -gamepad1.left_stick_y;\n            double strafe =  gamepad1.left_stick_x;\n            double rotate =  gamepad1.right_stick_x;\n\n            frontLeft.setPower(drive + strafe + rotate);\n            frontRight.setPower(drive - strafe - rotate);\n            backLeft.setPower(drive - strafe + rotate);\n            backRight.setPower(drive + strafe - rotate);\n        }\n    }\n}",
+  "hints": [
+    {
+      "title": "Which motors to reverse",
+      "content": "On a standard mecanum drivetrain the left motors face opposite to the right motors. Reverse `frontLeft` and `backLeft`: `frontLeft.setDirection(DcMotor.Direction.REVERSE);`"
+    },
+    {
+      "title": "Setting BRAKE behavior",
+      "content": "Call `motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);` on each motor. This makes the motor actively resist movement when power is 0 — important for drivetrains that need to hold position."
+    },
+    {
+      "title": "Mecanum power equations",
+      "content": "The four equations are: `fl = drive + strafe + rotate`, `fr = drive - strafe - rotate`, `bl = drive - strafe + rotate`, `br = drive + strafe - rotate`. These can exceed ±1.0 if multiple inputs are combined — add normalization for production code."
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 package com.qualcomm.robotcore.hardware;
 
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 /**

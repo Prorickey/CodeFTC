@@ -1,0 +1,19 @@
+{
+  "title": "Non-Blocking Loop Patterns",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.OpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.hardware.Servo;\nimport com.qualcomm.robotcore.util.ElapsedTime;\n\n@TeleOp(name = \"Non-Blocking Patterns\")\npublic class StudentCode extends OpMode {\n\n    DcMotor driveMotor;\n    Servo clawServo;\n    ElapsedTime timer = new ElapsedTime();\n    boolean clawOpen = false;\n    boolean prevButton = false;\n\n    @Override\n    public void init() {\n        driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n        clawServo   = hardwareMap.get(Servo.class,   \"clawServo\");\n    }\n\n    @Override\n    public void loop() {\n        // TODO: Drive with left stick Y (negate)\n        driveMotor.setPower(-gamepad1.left_stick_y);\n\n        // TODO: Toggle clawOpen when gamepad1.a is pressed (rising edge only).\n        //       Use prevButton to detect a press (was false, now true).\n        //       After toggling, set clawServo position:\n        //         open  → 1.0\n        //         closed → 0.0\n\n\n        prevButton = gamepad1.a;\n\n        telemetry.addData(\"Claw open\", clawOpen);\n        telemetry.addData(\"Drive power\", driveMotor.getPower());\n        telemetry.update();\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.OpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.hardware.Servo;\nimport com.qualcomm.robotcore.util.ElapsedTime;\n\n@TeleOp(name = \"Non-Blocking Patterns\")\npublic class StudentCode extends OpMode {\n\n    DcMotor driveMotor;\n    Servo clawServo;\n    ElapsedTime timer = new ElapsedTime();\n    boolean clawOpen = false;\n    boolean prevButton = false;\n\n    @Override\n    public void init() {\n        driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n        clawServo   = hardwareMap.get(Servo.class,   \"clawServo\");\n    }\n\n    @Override\n    public void loop() {\n        driveMotor.setPower(-gamepad1.left_stick_y);\n\n        boolean currButton = gamepad1.a;\n        if (currButton && !prevButton) {\n            clawOpen = !clawOpen;\n            clawServo.setPosition(clawOpen ? 1.0 : 0.0);\n        }\n        prevButton = currButton;\n\n        telemetry.addData(\"Claw open\", clawOpen);\n        telemetry.addData(\"Drive power\", driveMotor.getPower());\n        telemetry.update();\n    }\n}",
+  "hints": [
+    {
+      "title": "Rising edge detection",
+      "content": "To detect a button press (not a hold), check `currButton && !prevButton`. This is true only on the first loop() where the button transitions from released to pressed. Always update `prevButton = currButton` at the end of loop()."
+    },
+    {
+      "title": "Toggling a boolean",
+      "content": "Use `clawOpen = !clawOpen;` to flip the state. Then use a ternary to pick the servo position: `clawServo.setPosition(clawOpen ? 1.0 : 0.0);`"
+    },
+    {
+      "title": "Why not use sleep()?",
+      "content": "In OpMode, loop() must return quickly. Never call sleep() or blocking loops inside loop() — the robot controller will not be able to update other subsystems. Use state variables and ElapsedTime instead."
+    }
+  ]
+}

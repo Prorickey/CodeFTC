@@ -1,0 +1,231 @@
+---
+title: "Field-Centric Mecanum Drive"
+description: "Rotate gamepad inputs by the robot's IMU heading so the robot always drives relative to the field."
+---
+
+# Field-Centric Mecanum Drive
+
+After practicing mecanum driving in matches, drivers quickly notice a frustrating problem: once the robot has turned, the controls feel "wrong." Pushing the left stick forward drives the robot forward *relative to the robot* -- but the driver is facing the field, not the robot. If the robot has turned 90°, what was "forward" is now "sideways" from the driver's perspective. Field-centric drive fixes this by making "forward" on the stick always mean "toward the far end of the field," regardless of how the robot is oriented.
+
+## Robot-Centric vs. Field-Centric
+
+### Robot-Centric (Standard Mecanum)
+
+In robot-centric drive, the stick axes are always relative to the robot's body:
+
+- Left stick up → robot drives toward its front
+- Left stick right → robot strafes toward its right side
+
+After the robot rotates 90° clockwise, "its front" is now pointing to the right side of the field. Pushing the stick up now drives the robot sideways from the driver's perspective.
+
+### Field-Centric
+
+In field-centric drive, the stick axes are always relative to the field:
+
+- Left stick up → robot drives toward the far end of the field, no matter how it is rotated
+- Left stick right → robot moves to the right side of the field, no matter how it is rotated
+
+The driver's mental model is fixed. The software handles the rotation math.
+
+## The Math: 2D Rotation
+
+The gamepad gives you two values:
+- `x` = `gamepad1.left_stick_x` — strafe input (-1.0 left, +1.0 right)
+- `y` = `-gamepad1.left_stick_y` — forward input (negated: +1.0 forward)
+
+These define a velocity vector in the **driver's frame**. To convert to the **robot's frame**, rotate this vector by the **negative** of the robot's current heading. A negative rotation cancels out the robot's rotation, aligning the input back to the field.
+
+The 2D rotation formula is:
+
+```java
+double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+```
+
+After this transformation, `rotX` and `rotY` are strafe and forward values in the robot's own frame, ready to be plugged directly into the standard mecanum formulas.
+
+## Why Rotate by the Negative Heading?
+
+When the robot has rotated 90° clockwise (+90° in the IMU), the driver's "forward" vector points 90° to the left of the robot's front. To convert from field frame to robot frame, you rotate by -90°. Rotating the driver input by `-botHeading` undoes the robot's rotation, giving you the correct robot-frame command.
+
+Think of it this way: if the robot is facing right and you push the stick forward, you want the robot to move right (in the field's coordinate system), which means strafing from the robot's perspective. The rotation matrix does this conversion automatically.
+
+## Applying the Rotation to Mecanum Kinematics
+
+```java
+// Get IMU heading in radians
+double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+// Raw gamepad inputs
+double x = gamepad1.left_stick_x;
+double y = -gamepad1.left_stick_y;   // Negate Y axis
+double rx = gamepad1.right_stick_x;  // Rotation (unchanged)
+
+// Rotate the input vector by -botHeading
+double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+
+// Mecanum inverse kinematics
+double fl = rotY - rotX - rx;
+double fr = rotY + rotX + rx;
+double bl = rotY + rotX - rx;
+double br = rotY - rotX + rx;
+
+// Normalize to [-1, 1]
+double max = Math.max(Math.abs(fl),
+            Math.max(Math.abs(fr),
+            Math.max(Math.abs(bl), Math.abs(br))));
+if (max > 1.0) {
+    fl /= max;
+    fr /= max;
+    bl /= max;
+    br /= max;
+}
+
+frontLeft.setPower(fl);
+frontRight.setPower(fr);
+backLeft.setPower(bl);
+backRight.setPower(br);
+```
+
+Note that the `rx` (rotation) input is not rotated. Rotation is relative to the robot in both control modes -- turning right always turns the robot clockwise. Only translation (forward/strafe) needs the field-centric correction.
+
+## IMU Setup
+
+Before `waitForStart()`, initialize the IMU:
+
+```java
+IMU imu = hardwareMap.get(IMU.class, "imu");
+
+IMU.Parameters parameters = new IMU.Parameters(
+    new RevHubOrientationOnRobot(
+        RevHubOrientationOnRobot.LogoFacingDirection.UP,
+        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+    )
+);
+imu.initialize(parameters);
+```
+
+The `LogoFacingDirection` and `UsbFacingDirection` must match how the REV Control Hub is physically mounted on your robot. Incorrect orientation settings will cause the heading to be wrong or reversed.
+
+### Resetting Yaw at Start
+
+Optionally, reset the yaw at the beginning of teleop so the driver's perspective matches the robot's starting orientation:
+
+```java
+imu.resetYaw();
+```
+
+After this call, the direction the robot is currently facing is defined as 0°.
+
+## Full Field-Centric TeleOp Example
+
+```java
+@TeleOp(name = "Field Centric Drive")
+public class FieldCentricDrive extends LinearOpMode {
+
+    @Override
+    public void runOpMode() {
+        DcMotor frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
+        DcMotor frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        DcMotor backLeft   = hardwareMap.get(DcMotor.class, "backLeft");
+        DcMotor backRight  = hardwareMap.get(DcMotor.class, "backRight");
+
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.REVERSE);
+
+        IMU imu = hardwareMap.get(IMU.class, "imu");
+        IMU.Parameters parameters = new IMU.Parameters(
+            new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+            )
+        );
+        imu.initialize(parameters);
+
+        waitForStart();
+        imu.resetYaw();
+
+        while (opModeIsActive()) {
+            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+            double x  =  gamepad1.left_stick_x;
+            double y  = -gamepad1.left_stick_y;
+            double rx =  gamepad1.right_stick_x;
+
+            double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+            double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+
+            double fl = rotY - rotX - rx;
+            double fr = rotY + rotX + rx;
+            double bl = rotY + rotX - rx;
+            double br = rotY - rotX + rx;
+
+            double max = Math.max(Math.abs(fl),
+                        Math.max(Math.abs(fr),
+                        Math.max(Math.abs(bl), Math.abs(br))));
+            if (max > 1.0) {
+                fl /= max;
+                fr /= max;
+                bl /= max;
+                br /= max;
+            }
+
+            frontLeft.setPower(fl);
+            frontRight.setPower(fr);
+            backLeft.setPower(bl);
+            backRight.setPower(br);
+
+            telemetry.addData("Heading (deg)", Math.toDegrees(botHeading));
+            telemetry.addData("FL / FR", "%.2f / %.2f", fl, fr);
+            telemetry.addData("BL / BR", "%.2f / %.2f", bl, br);
+            telemetry.update();
+        }
+    }
+}
+```
+
+## Tracing Through the Exercise Math
+
+The exercise asks you to verify that with a 45° heading and a pure forward stick command, the wheel powers are correct.
+
+Given:
+- `botHeading = 45° = π/4 radians`
+- `left_stick_y = -1.0` → `y = -(-1.0) = 1.0`
+- `left_stick_x = 0` → `x = 0`
+- `right_stick_x = 0` → `rx = 0`
+
+Apply the rotation:
+```
+rotX = 0 * cos(-π/4) - 1.0 * sin(-π/4)
+     = 0 - 1.0 * (-0.7071)
+     = 0.7071
+
+rotY = 0 * sin(-π/4) + 1.0 * cos(-π/4)
+     = 0 + 1.0 * 0.7071
+     = 0.7071
+```
+
+Apply mecanum kinematics:
+```
+fl = rotY - rotX - rx = 0.7071 - 0.7071 - 0 = 0.0
+fr = rotY + rotX + rx = 0.7071 + 0.7071 + 0 = 1.414
+bl = rotY + rotX - rx = 0.7071 + 0.7071 - 0 = 1.414
+br = rotY - rotX + rx = 0.7071 - 0.7071 + 0 = 0.0
+```
+
+Normalize by max (1.414):
+```
+fl = 0.0   / 1.414 ≈ 0.0
+fr = 1.414 / 1.414 ≈ 1.0
+bl = 1.414 / 1.414 ≈ 1.0
+br = 0.0   / 1.414 ≈ 0.0
+```
+
+The robot drives its `frontRight` and `backLeft` motors at full power -- the diagonal that, on a robot facing 45°, produces forward field-relative motion. This is exactly correct.
+
+## Your Exercise
+
+Implement field-centric mecanum drive. The IMU heading is **45° (π/4 radians)**. The driver pushes straight forward: `left_stick_y = -1.0` (no strafe, no rotation). Apply the 2D rotation to get `rotX` and `rotY`, then compute the four motor powers using mecanum kinematics, normalize, and set motor powers. After normalization, `frontLeft ≈ 0.0`, `frontRight ≈ 1.0`, `backLeft ≈ 1.0`, `backRight ≈ 0.0`.

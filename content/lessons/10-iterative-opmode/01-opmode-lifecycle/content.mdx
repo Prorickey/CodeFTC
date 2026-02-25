@@ -1,0 +1,192 @@
+---
+title: "Iterative OpMode: The OpMode Lifecycle"
+description: "Understand the init/loop event-driven model as an alternative to LinearOpMode."
+---
+
+# Iterative OpMode: The OpMode Lifecycle
+
+Every FTC program you have written so far has extended `LinearOpMode`, where the entire program flows top to bottom inside `runOpMode()`. This model is intuitive, but FTC also provides a second programming style: the **iterative OpMode** (often just called `OpMode`). Rather than a single sequential method, it uses a set of callbacks that the robot controller calls at specific moments in the match lifecycle.
+
+## Two Styles of FTC OpMode
+
+### LinearOpMode (What You Know)
+
+```java
+public class MyLinearOp extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        // init hardware...
+        waitForStart();
+        while (opModeIsActive()) {
+            // control loop...
+        }
+    }
+}
+```
+
+Everything lives in `runOpMode()`. You manage your own loop with `while (opModeIsActive())` and your own blocking waits with `waitForStart()`.
+
+### OpMode (Iterative / Event-Driven)
+
+```java
+public class MyIterativeOp extends OpMode {
+    @Override
+    public void init() { /* called once when INIT is pressed */ }
+
+    @Override
+    public void loop() { /* called repeatedly while running */ }
+}
+```
+
+There is no `runOpMode()` and no `waitForStart()`. Instead, the robot controller calls your methods at the right times based on which button the driver presses.
+
+## The Five Lifecycle Callbacks
+
+### init()
+
+Called **once** when the driver presses INIT on the Driver Station. This is where you initialize hardware -- get motors from `hardwareMap`, configure directions, zero encoders, and prepare your state variables.
+
+```java
+@Override
+public void init() {
+    driveMotor = hardwareMap.get(DcMotor.class, "driveMotor");
+    driveMotor.setDirection(DcMotor.Direction.REVERSE);
+    telemetry.addData("Status", "Initialized");
+}
+```
+
+### init_loop()
+
+Called **repeatedly** between INIT and START. Use it to display sensor readings so drivers can verify the robot's state before the match begins -- "Is the arm at the right starting position? Are encoders at zero?"
+
+```java
+@Override
+public void init_loop() {
+    telemetry.addData("Arm position", armMotor.getCurrentPosition());
+    telemetry.addData("Battery", hardwareMap.voltageSensor.iterator().next().getVoltage());
+}
+```
+
+### start()
+
+Called **once** when the driver presses START. This callback is optional (you do not have to override it). Use it for one-time actions that should happen exactly at match start: resetting a timer, zeroing the IMU yaw, or releasing a starting mechanism.
+
+```java
+@Override
+public void start() {
+    matchTimer.reset();
+}
+```
+
+### loop()
+
+Called **repeatedly** while the OpMode is running. This is your main control method -- the equivalent of the body of `while (opModeIsActive())` in a LinearOpMode. Read gamepad inputs, compute motor powers, update telemetry. Do not use `sleep()` or blocking loops here.
+
+```java
+@Override
+public void loop() {
+    double power = -gamepad1.left_stick_y;
+    driveMotor.setPower(power);
+    telemetry.addData("Power", power);
+}
+```
+
+### stop()
+
+Called **once** when the driver presses STOP. Use it to safely power down actuators and log final state. In most cases the robot controller handles motor shutdown automatically, but explicit cleanup is good practice.
+
+```java
+@Override
+public void stop() {
+    driveMotor.setPower(0.0);
+    telemetry.addData("Status", "Stopped");
+}
+```
+
+## Side-by-Side Comparison
+
+```java
+// LinearOpMode style
+public class LinearStyle extends LinearOpMode {
+    DcMotor motor;
+
+    @Override
+    public void runOpMode() {
+        motor = hardwareMap.get(DcMotor.class, "motor");
+
+        waitForStart();  // Blocks until driver presses START
+
+        while (opModeIsActive()) {
+            motor.setPower(-gamepad1.left_stick_y);
+            telemetry.addData("Power", motor.getPower());
+            telemetry.update();
+        }
+    }
+}
+
+// OpMode style
+public class IterativeStyle extends OpMode {
+    DcMotor motor;
+
+    @Override
+    public void init() {
+        motor = hardwareMap.get(DcMotor.class, "motor");
+    }
+
+    @Override
+    public void loop() {
+        motor.setPower(-gamepad1.left_stick_y);
+        telemetry.addData("Power", motor.getPower());
+        // No telemetry.update() needed -- the system calls it automatically
+    }
+}
+```
+
+Notice that `OpMode` does not require a `telemetry.update()` call in `loop()` -- the robot controller flushes telemetry automatically after each `loop()` invocation.
+
+## Why Use OpMode?
+
+- **Speed**: `loop()` is called as fast as the robot controller can manage -- typically every 1 ms or less. `LinearOpMode`'s `while` loop is slightly slower because of the overhead of checking `opModeIsActive()`.
+- **Structure**: For complex robots with many subsystems, separating init, pre-match display, and runtime logic into separate methods can make code cleaner.
+- **Compatibility**: Some third-party libraries (like Road Runner's built-in tuning OpModes) are written as `OpMode` rather than `LinearOpMode`.
+
+For simple teleop programs, `LinearOpMode` is fine. As your programs grow more complex, the `OpMode` lifecycle becomes more useful.
+
+## A Minimal Complete Example
+
+```java
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+
+@TeleOp(name = "Iterative Drive")
+public class IterativeDrive extends OpMode {
+
+    DcMotor driveMotor;
+
+    @Override
+    public void init() {
+        driveMotor = hardwareMap.get(DcMotor.class, "driveMotor");
+        driveMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        telemetry.addData("Status", "Ready");
+    }
+
+    @Override
+    public void loop() {
+        double power = -gamepad1.left_stick_y;
+        driveMotor.setPower(power);
+        telemetry.addData("Power", power);
+    }
+
+    @Override
+    public void stop() {
+        driveMotor.setPower(0.0);
+    }
+}
+```
+
+There is no `waitForStart()` -- the robot controller calls `loop()` only after START has been pressed. You do not need to guard against early execution.
+
+## Your Exercise
+
+Extend `OpMode`. In `init()`: retrieve `driveMotor` from `hardwareMap` using `DcMotor.class`. In `loop()`: read `gamepad1.left_stick_y`, negate it, and set it as the motor power with `driveMotor.setPower(-gamepad1.left_stick_y)`. There is no `waitForStart()` needed -- the lifecycle handles that for you.

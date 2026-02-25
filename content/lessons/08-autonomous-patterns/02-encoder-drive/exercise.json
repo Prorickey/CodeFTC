@@ -1,0 +1,23 @@
+{
+  "title": "Encoder-Driven Autonomous",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.Autonomous;\nimport com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@Autonomous(name = \"Encoder Drive\")\npublic class StudentCode extends LinearOpMode {\n\n    static final double TICKS_PER_REV      = 537.7;\n    static final double WHEEL_DIAMETER_CM  = 10.0;\n    static final double TARGET_CM          = 60.0;\n\n    @Override\n    public void runOpMode() {\n        DcMotor leftMotor  = hardwareMap.get(DcMotor.class, \"leftMotor\");\n        DcMotor rightMotor = hardwareMap.get(DcMotor.class, \"rightMotor\");\n\n        // TODO: Reset encoders on both motors (STOP_AND_RESET_ENCODER)\n\n        // TODO: Calculate targetTicks from TARGET_CM, WHEEL_DIAMETER_CM, and TICKS_PER_REV\n        //       Hint: circumference = Math.PI * WHEEL_DIAMETER_CM\n        //             targetTicks = (int)(TARGET_CM / circumference * TICKS_PER_REV)\n\n        // TODO: Set target position on both motors\n\n        // TODO: Set both motors to RUN_TO_POSITION mode\n\n        waitForStart();\n\n        // TODO: Set both motors to 0.5 power to start moving\n\n        // TODO: Wait while opModeIsActive() and either motor is still busy\n\n        // TODO: Stop both motors\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.Autonomous;\nimport com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@Autonomous(name = \"Encoder Drive\")\npublic class StudentCode extends LinearOpMode {\n\n    static final double TICKS_PER_REV      = 537.7;\n    static final double WHEEL_DIAMETER_CM  = 10.0;\n    static final double TARGET_CM          = 60.0;\n\n    @Override\n    public void runOpMode() {\n        DcMotor leftMotor  = hardwareMap.get(DcMotor.class, \"leftMotor\");\n        DcMotor rightMotor = hardwareMap.get(DcMotor.class, \"rightMotor\");\n\n        leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);\n        rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);\n\n        double circumference = Math.PI * WHEEL_DIAMETER_CM;\n        int targetTicks = (int)(TARGET_CM / circumference * TICKS_PER_REV);\n\n        leftMotor.setTargetPosition(targetTicks);\n        rightMotor.setTargetPosition(targetTicks);\n\n        leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);\n        rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);\n\n        waitForStart();\n\n        leftMotor.setPower(0.5);\n        rightMotor.setPower(0.5);\n\n        while (opModeIsActive() && (leftMotor.isBusy() || rightMotor.isBusy())) {\n            telemetry.addData(\"Left ticks\",  leftMotor.getCurrentPosition());\n            telemetry.addData(\"Right ticks\", rightMotor.getCurrentPosition());\n            telemetry.update();\n        }\n\n        leftMotor.setPower(0.0);\n        rightMotor.setPower(0.0);\n    }\n}",
+  "hints": [
+    {
+      "title": "Calculating targetTicks",
+      "content": "One full wheel rotation covers `Math.PI * wheelDiameter` cm. Divide your target distance by that to get revolutions, then multiply by `TICKS_PER_REV`: `int targetTicks = (int)(TARGET_CM / (Math.PI * WHEEL_DIAMETER_CM) * TICKS_PER_REV);`"
+    },
+    {
+      "title": "Order of operations",
+      "content": "Reset encoders first (`STOP_AND_RESET_ENCODER`), then set the target position, then switch to `RUN_TO_POSITION`. The target is relative to the position at the time of the mode switch."
+    },
+    {
+      "title": "Power must be set after RUN_TO_POSITION",
+      "content": "Switching to `RUN_TO_POSITION` doesn't start the motor moving — you still have to call `setPower()` with a positive value. Without it, the motor sits idle."
+    },
+    {
+      "title": "The busy loop",
+      "content": "Use `while (opModeIsActive() && (leftMotor.isBusy() || rightMotor.isBusy()))` to wait. Always include `opModeIsActive()` so the robot responds to a Driver Station stop command."
+    }
+  ]
+}
