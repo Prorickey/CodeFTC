@@ -1,0 +1,126 @@
+---
+title: "IMU Heading Hold"
+description: "Use IMU feedback to keep your robot driving straight by correcting for drift."
+---
+
+# IMU Heading Hold
+
+You might think that setting both motors to the same power would make your robot drive perfectly straight. In practice, it almost never does. Motors have slightly different friction, wheels may have different traction, and weight distribution might be uneven. The result: your robot **drifts** off course.
+
+In this lesson, you will solve this problem using **heading hold** -- a technique that uses the IMU to detect drift and automatically correct it.
+
+## The Problem: Drift
+
+Imagine you set both drive motors to 0.5 power and expect the robot to drive straight forward. After a few seconds, the robot has veered several degrees to the right. On a competition field, this kind of drift can mean the difference between scoring and missing entirely.
+
+The root cause is that "same power" does not mean "same speed." Mechanical differences between the left and right sides of the drivetrain mean the robot naturally turns slightly even when you command equal power.
+
+## The Solution: Feedback Control
+
+The fix is straightforward: **measure the drift and correct for it**. The IMU tells you the robot's current heading. If the robot drifts right (heading increases), you give the left motor a bit more power and the right motor a bit less. If it drifts left, you do the opposite.
+
+This is a form of **proportional control** -- the correction is proportional to the error.
+
+## The Heading Hold Algorithm
+
+Here is the step-by-step logic:
+
+1. **Define a target heading** (usually 0 degrees -- straight ahead).
+2. **Read the current heading** from the IMU.
+3. **Calculate the error**: `error = targetHeading - currentHeading`.
+4. **Calculate a correction**: `turnPower = Kp * error`, where `Kp` is a tuning constant.
+5. **Apply the correction** to the motors:
+   - `leftPower = drivePower + turnPower`
+   - `rightPower = drivePower - turnPower`
+
+The key insight is in step 5. When the robot drifts right (positive heading error becomes negative), `turnPower` becomes negative. This means the left motor gets *less* power and the right motor gets *more*, which turns the robot back to the left -- correcting the drift.
+
+## Choosing Kp
+
+The constant `Kp` (proportional gain) determines how aggressively the robot corrects:
+
+- **Too small**: The robot barely corrects and still drifts noticeably.
+- **Too large**: The robot overcorrects and oscillates left and right.
+- **Just right**: The robot smoothly maintains its heading.
+
+A good starting value for heading hold is `Kp = 0.02`. This means for every 1 degree of error, the motor power correction is 0.02. At 10 degrees of error, the correction is 0.2 -- a significant but not extreme adjustment.
+
+You will need to tune this value for your specific robot. Start with 0.02, drive the robot straight, and observe:
+- If it still drifts, increase Kp.
+- If it wobbles or oscillates, decrease Kp.
+
+## A Worked Example
+
+Let us walk through the math with concrete numbers:
+
+- **Target heading**: 0 degrees
+- **Current heading** (from IMU): 5 degrees (robot has drifted right)
+- **Drive power**: 0.5
+- **Kp**: 0.02
+
+Calculations:
+
+```
+error = targetHeading - currentHeading = 0 - 5 = -5
+turnPower = Kp * error = 0.02 * (-5) = -0.1
+leftPower = drivePower + turnPower = 0.5 + (-0.1) = 0.4
+rightPower = drivePower - turnPower = 0.5 - (-0.1) = 0.6
+```
+
+The left motor runs at 0.4 and the right motor at 0.6. Since the right side is faster, the robot turns back to the left, correcting the rightward drift.
+
+## Putting It in Code
+
+Here is what heading hold looks like in a complete program:
+
+```java
+IMU imu = hardwareMap.get(IMU.class, "imu");
+// ... initialize IMU ...
+
+DcMotor leftMotor = hardwareMap.get(DcMotor.class, "leftMotor");
+DcMotor rightMotor = hardwareMap.get(DcMotor.class, "rightMotor");
+
+double targetHeading = 0.0;
+double drivePower = 0.5;
+double Kp = 0.02;
+
+waitForStart();
+
+while (opModeIsActive()) {
+    YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();
+    double currentHeading = angles.getYaw(AngleUnit.DEGREES);
+
+    double error = targetHeading - currentHeading;
+    double turnPower = Kp * error;
+
+    double leftPower = drivePower + turnPower;
+    double rightPower = drivePower - turnPower;
+
+    leftMotor.setPower(leftPower);
+    rightMotor.setPower(rightPower);
+}
+```
+
+In a real competition program, you would also want to clamp the power values to the valid range of -1.0 to 1.0 to prevent issues if the error gets very large.
+
+## Your Exercise
+
+Implement heading hold for a robot that has drifted. The simulated IMU reads a yaw of **5.0 degrees** (the robot has drifted to the right).
+
+Use these values:
+
+- **Target heading**: 0.0 degrees
+- **Drive power**: 0.5
+- **Kp**: 0.02
+
+Your task:
+
+1. Get the IMU and both motors from the hardware map.
+2. Initialize the IMU (logo UP, USB FORWARD).
+3. After `waitForStart()`, read the current heading.
+4. Calculate the error, turn power, and individual motor powers.
+5. Set the motor powers.
+
+Expected results: `leftMotor` at **0.4** and `rightMotor` at **0.6**.
+
+Give it a try!

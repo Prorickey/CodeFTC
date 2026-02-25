@@ -1,0 +1,94 @@
+---
+title: "Your First Motor"
+description: "Learn how to connect to hardware and spin a motor using the FTC SDK."
+---
+
+# Your First Motor
+
+In the previous lesson, you wrote an OpMode that displayed messages on the Driver Station. That is a fine start, but robots are meant to *move*. In this lesson, you will learn how to access hardware devices and control a DC motor.
+
+## The Hardware Map
+
+Every piece of hardware on your FTC robot -- motors, servos, sensors -- is registered in a **hardware configuration** on the Robot Controller. When your OpMode runs, the FTC SDK provides a `hardwareMap` object that lets you look up devices by name.
+
+Here is how you retrieve a DC motor:
+
+```java
+DcMotor motor = hardwareMap.get(DcMotor.class, "motorName");
+```
+
+Let's break this down:
+
+- **`hardwareMap.get()`** looks up a hardware device by its type and name.
+- **`DcMotor.class`** tells the SDK you want a DC motor.
+- **`"motorName"`** is the name you gave the motor in your robot's hardware configuration. It must match exactly (case-sensitive).
+
+You should always get your hardware references **before** `waitForStart()`, during the initialization phase. This way, if something is misconfigured, you will see the error before the match starts.
+
+## Controlling a Motor
+
+Once you have a `DcMotor` reference, you can control it with `setPower()`:
+
+```java
+motor.setPower(0.5);  // Half speed forward
+```
+
+The power value is a `double` that ranges from **-1.0 to 1.0**:
+
+| Value | Effect |
+|-------|--------|
+| `1.0` | Full speed forward |
+| `0.5` | Half speed forward |
+| `0.0` | Stopped |
+| `-0.5` | Half speed reverse |
+| `-1.0` | Full speed reverse |
+
+Here is a complete example that spins a motor at half power:
+
+```java
+@TeleOp(name = "Motor Demo")
+public class MotorDemo extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        DcMotor motor = hardwareMap.get(DcMotor.class, "myMotor");
+
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        waitForStart();
+
+        motor.setPower(0.5);
+
+        telemetry.addData("Status", "Motor running at 50%");
+        telemetry.update();
+    }
+}
+```
+
+## Important: Imports
+
+To use `DcMotor`, you need to import it at the top of your file:
+
+```java
+import com.qualcomm.robotcore.hardware.DcMotor;
+```
+
+The FTC SDK organizes hardware classes under `com.qualcomm.robotcore.hardware`. You will see this import pattern frequently.
+
+## A Word About Hardware Names
+
+On a real robot, hardware names come from the configuration file you create on the Robot Controller phone or Control Hub. In this tutorial environment, we simulate the hardware for you, so the motor name is pre-configured as `"testMotor"`.
+
+In your own team's code, you would choose descriptive names like `"leftFront"`, `"intakeMotor"`, or `"liftMotor"` and configure them to match the physical ports.
+
+## Your Exercise
+
+Your task is to:
+
+1. **Get** a `DcMotor` from the `hardwareMap` with the name `"testMotor"`.
+2. **Wait** for start.
+3. **Set** the motor's power to `0.5`.
+
+This is a foundational pattern you will use constantly in FTC programming: get hardware, wait for start, control hardware.
+
+Try it in the editor below!

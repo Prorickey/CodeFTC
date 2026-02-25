@@ -1,0 +1,5 @@
+{
+  "title": "Sensors",
+  "order": 4,
+  "description": "Read and respond to sensor data — touch, distance, and IMU."
+}

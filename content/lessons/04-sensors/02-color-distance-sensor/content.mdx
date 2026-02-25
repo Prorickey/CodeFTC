@@ -1,0 +1,98 @@
+---
+title: "Color-Distance Sensor"
+description: "Use a distance sensor to detect objects and adjust motor behavior based on proximity."
+---
+
+# Color-Distance Sensor
+
+Many FTC robots need to know how far away something is -- whether that is a wall, a game element, or another robot. The **distance sensor** gives your robot a sense of spatial awareness. In this lesson, you will learn how to read distances and make decisions based on proximity.
+
+## The DistanceSensor Interface
+
+In the FTC SDK, distance sensing is accessed through the `DistanceSensor` interface. The REV Color/Range Sensor (commonly used in FTC) implements this interface and can measure distances to nearby objects.
+
+To get a distance sensor from the hardware map:
+
+```java
+DistanceSensor rangeSensor = hardwareMap.get(DistanceSensor.class, "rangeSensor");
+```
+
+## Reading Distance
+
+The primary method on `DistanceSensor` is `getDistance()`, which takes a `DistanceUnit` parameter:
+
+```java
+double distanceCm = rangeSensor.getDistance(DistanceUnit.CM);
+double distanceIn = rangeSensor.getDistance(DistanceUnit.INCH);
+double distanceMm = rangeSensor.getDistance(DistanceUnit.MM);
+double distanceM  = rangeSensor.getDistance(DistanceUnit.METER);
+```
+
+You can use whichever unit is most convenient for your application. Most FTC teams work in centimeters or inches.
+
+The available `DistanceUnit` values are:
+
+| Unit | Constant | Typical Use |
+|------|----------|-------------|
+| Centimeters | `DistanceUnit.CM` | General-purpose, metric teams |
+| Inches | `DistanceUnit.INCH` | US teams, field measurements |
+| Millimeters | `DistanceUnit.MM` | Precision work |
+| Meters | `DistanceUnit.METER` | Large distances |
+
+## Practical Range Considerations
+
+Distance sensors have limitations you need to understand:
+
+- **Minimum range**: Most sensors cannot measure objects closer than about 1-2 cm. Readings below this threshold are unreliable.
+- **Maximum range**: The REV Color/Range Sensor is reliable up to about 10-15 cm for color sensing and roughly 20-30 cm for distance, depending on the target surface.
+- **Surface reflectivity**: Shiny or dark surfaces may give inaccurate readings. A matte white surface is ideal.
+- **Angle of incidence**: The sensor works best when the target is directly in front of it. Angled surfaces will give longer readings.
+
+When a reading is unreliable (out of range), the sensor may return `DistanceUnit.infinity` or a very large number. Always check for this in production code.
+
+## Using Distance for Object Detection
+
+One of the most practical uses of a distance sensor is **proximity-based behavior**. You can define distance thresholds that change how your robot acts:
+
+```java
+double distance = rangeSensor.getDistance(DistanceUnit.CM);
+
+if (distance < 10) {
+    // Very close -- stop to avoid collision
+    motor.setPower(0.0);
+} else if (distance < 30) {
+    // Medium range -- slow down
+    motor.setPower(0.5);
+} else {
+    // Far away -- full speed ahead
+    motor.setPower(1.0);
+}
+```
+
+This kind of tiered response is a simple but effective way to add intelligence to your robot. More advanced teams might use the distance value to calculate a proportional speed, slowing down smoothly as they approach an object.
+
+## Combining Distance with Telemetry
+
+Always display your sensor readings on telemetry during development. It makes debugging far easier:
+
+```java
+telemetry.addData("Distance (cm)", rangeSensor.getDistance(DistanceUnit.CM));
+telemetry.addData("Motor Power", motor.getPower());
+telemetry.update();
+```
+
+Being able to see the raw sensor value on the Driver Station screen helps you tune your distance thresholds to match your specific robot and game situation.
+
+## Your Exercise
+
+In this exercise, you will read a distance sensor and adjust a motor's speed based on proximity. The distance sensor `"rangeSensor"` is currently reading **15.0 cm**.
+
+Implement the following behavior:
+
+1. If distance is **less than 10 cm**: set `driveMotor` power to **0.0** (stop -- too close!)
+2. If distance is **between 10 and 30 cm** (inclusive of 10, exclusive of 30): set power to **0.5** (approach slowly)
+3. If distance is **30 cm or greater**: set power to **1.0** (full speed)
+
+Since the sensor reads 15.0 cm, your motor should end up at power **0.5**.
+
+Give it a try!

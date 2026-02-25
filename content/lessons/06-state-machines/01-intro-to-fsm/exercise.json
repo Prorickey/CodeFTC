@@ -1,0 +1,49 @@
+{
+  "title": "Intro to Finite State Machines",
+  "className": "StudentCode",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Lift FSM\")\npublic class StudentCode extends LinearOpMode {\n\n    enum LiftState {\n        IDLE,\n        RAISING,\n        HOLDING\n    }\n\n    @Override\n    public void runOpMode() {\n        DcMotor liftMotor = hardwareMap.get(DcMotor.class, \"liftMotor\");\n        LiftState state = LiftState.IDLE;\n\n        waitForStart();\n\n        // --- First FSM iteration ---\n        // TODO: Use a switch statement on 'state' to handle each LiftState.\n        //\n        // In the IDLE case:\n        //   - Set liftMotor power to 0.0\n        //   - If gamepad1.a is pressed, transition to RAISING\n        //\n        // In the RAISING case:\n        //   - Set liftMotor power to 1.0\n        //\n        // In the HOLDING case:\n        //   - Set liftMotor power to 0.1\n\n        // --- Second FSM iteration ---\n        // TODO: Copy the same switch statement here.\n        // In a real program this would be inside a while(opModeIsActive()) loop.\n        // The second iteration picks up the new state from the first.\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Lift FSM\")\npublic class StudentCode extends LinearOpMode {\n\n    enum LiftState {\n        IDLE,\n        RAISING,\n        HOLDING\n    }\n\n    @Override\n    public void runOpMode() {\n        DcMotor liftMotor = hardwareMap.get(DcMotor.class, \"liftMotor\");\n        LiftState state = LiftState.IDLE;\n\n        waitForStart();\n\n        // --- First FSM iteration ---\n        switch (state) {\n            case IDLE:\n                liftMotor.setPower(0.0);\n                if (gamepad1.a) {\n                    state = LiftState.RAISING;\n                }\n                break;\n            case RAISING:\n                liftMotor.setPower(1.0);\n                break;\n            case HOLDING:\n                liftMotor.setPower(0.1);\n                break;\n        }\n\n        // --- Second FSM iteration ---\n        switch (state) {\n            case IDLE:\n                liftMotor.setPower(0.0);\n                if (gamepad1.a) {\n                    state = LiftState.RAISING;\n                }\n                break;\n            case RAISING:\n                liftMotor.setPower(1.0);\n                break;\n            case HOLDING:\n                liftMotor.setPower(0.1);\n                break;\n        }\n    }\n}",
+  "hardwareConfig": {
+    "motors": {
+      "liftMotor": {
+        "type": "DcMotor"
+      }
+    },
+    "gamepad": {
+      "a": true
+    }
+  },
+  "tests": [
+    {
+      "type": "method_call",
+      "name": "waitForStart() is called",
+      "method": "waitForStart",
+      "assertion": "called"
+    },
+    {
+      "type": "motor_power",
+      "name": "Lift motor is at full power (1.0) after transitioning to RAISING",
+      "device": "liftMotor",
+      "expected": 1.0,
+      "tolerance": 0.01
+    }
+  ],
+  "hints": [
+    {
+      "title": "How to write a switch statement on an enum",
+      "content": "Use `switch (state) { case IDLE: ... break; case RAISING: ... break; case HOLDING: ... break; }`. Each case handles the behavior for one specific state."
+    },
+    {
+      "title": "How to transition between states",
+      "content": "To transition, reassign the state variable inside a case: `state = LiftState.RAISING;`. The next time the switch runs, it will enter the RAISING case instead of IDLE."
+    },
+    {
+      "title": "Why two iterations?",
+      "content": "In a real program, the switch runs inside a `while(opModeIsActive())` loop. The first iteration detects the button press in IDLE and transitions to RAISING. The second iteration enters the RAISING case and sets the motor power. We simulate two loop iterations by writing the switch twice."
+    },
+    {
+      "title": "Full solution structure",
+      "content": "Write the same switch statement twice. Both have three cases: IDLE (set power 0.0, check gamepad1.a to transition), RAISING (set power 1.0), and HOLDING (set power 0.1). The first switch transitions from IDLE to RAISING. The second switch enters RAISING and sets the motor to 1.0."
+    }
+  ]
+}

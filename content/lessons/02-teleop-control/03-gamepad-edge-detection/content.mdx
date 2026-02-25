@@ -1,0 +1,128 @@
+---
+title: "Gamepad Edge Detection"
+description: "Learn to detect button presses (not holds) and implement toggle mechanisms for servos and other devices."
+---
+
+# Gamepad Edge Detection
+
+In the servo control lesson, you used `if (gamepad1.a)` to control a servo. That works for simple cases, but it has a subtle problem: in a real TeleOp loop running hundreds of times per second, holding a button for just a fraction of a second means the condition is `true` for dozens of loop iterations. For a toggle mechanism, this is a disaster. In this lesson, you will learn how to detect the **moment** a button is pressed.
+
+## The Problem with Raw Button Checks
+
+Consider this code that tries to toggle a servo between two positions:
+
+```java
+boolean isOpen = false;
+
+while (opModeIsActive()) {
+    if (gamepad1.a) {
+        isOpen = !isOpen;  // Toggle the state
+    }
+
+    if (isOpen) {
+        claw.setPosition(1.0);
+    } else {
+        claw.setPosition(0.0);
+    }
+}
+```
+
+This looks reasonable, but it **does not work**. Here is why: the loop runs roughly 100-300 times per second. Even a quick button tap takes about 100-200 milliseconds. That means `gamepad1.a` will be `true` for 10-60 consecutive loop iterations.
+
+On the first iteration: `isOpen` flips from `false` to `true`. On the second iteration: `isOpen` flips back from `true` to `false`. On the third: flips again. And so on.
+
+By the time the driver releases the button, `isOpen` has toggled back and forth dozens of times, and you have no idea what state it ended up in. The servo will appear to do nothing, or it will flicker.
+
+## Rising Edge Detection
+
+The solution is to detect the **rising edge** of the button press -- the exact moment the button transitions from "not pressed" to "pressed." You do this by comparing the current button state to the **previous** button state:
+
+```java
+boolean aPressed = gamepad1.a && !previousGamepad1.a;
+```
+
+This expression is only `true` for **one** loop iteration: the first iteration where the button is down. After that, `previousGamepad1.a` catches up and the expression becomes `false` even though the button is still held.
+
+## The State-Copy Pattern
+
+To implement edge detection, you need to save the previous gamepad state before reading the new one. The FTC SDK provides a `copy()` method for this:
+
+```java
+Gamepad previousGamepad1 = new Gamepad();
+Gamepad currentGamepad1 = new Gamepad();
+
+while (opModeIsActive()) {
+    // Save previous state, then capture current state
+    previousGamepad1.copy(currentGamepad1);
+    currentGamepad1.copy(gamepad1);
+
+    // Rising edge: button just pressed this iteration
+    if (currentGamepad1.a && !previousGamepad1.a) {
+        // This runs exactly ONCE per button press
+        isOpen = !isOpen;
+    }
+
+    claw.setPosition(isOpen ? 1.0 : 0.0);
+}
+```
+
+The order matters: you must copy the old "current" into "previous" **before** copying the new gamepad data into "current."
+
+## The Toggle Pattern
+
+Putting it all together, here is the complete toggle pattern:
+
+```java
+@TeleOp(name = "Toggle Demo")
+public class ToggleDemo extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        Servo claw = hardwareMap.get(Servo.class, "clawServo");
+
+        boolean clawOpen = false;
+        Gamepad previousGamepad1 = new Gamepad();
+        Gamepad currentGamepad1 = new Gamepad();
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            previousGamepad1.copy(currentGamepad1);
+            currentGamepad1.copy(gamepad1);
+
+            // Toggle claw on A button press
+            if (currentGamepad1.a && !previousGamepad1.a) {
+                clawOpen = !clawOpen;
+            }
+
+            claw.setPosition(clawOpen ? 1.0 : 0.0);
+
+            telemetry.addData("Claw", clawOpen ? "Open" : "Closed");
+            telemetry.update();
+        }
+    }
+}
+```
+
+This is one of the most useful patterns in FTC TeleOp programming. You can use it for any mechanism that needs to toggle between states.
+
+## Simplification for This Exercise
+
+In our tutorial sandbox, the code runs for one iteration (not in a continuous loop). Since there is no "previous" state, we will simplify the exercise: `gamepad1.a` starts as `true`, and since the servo starts at position 0.0, pressing A should set it to 1.0.
+
+In real FTC code, you would use the full edge detection pattern shown above. But the core concept is the same: check a condition and set the servo position based on a state variable.
+
+## Your Exercise
+
+You have a servo named `"clawServo"`. The gamepad's A button is pressed (`gamepad1.a` is `true`).
+
+Your task:
+
+1. Get the servo from the hardware map.
+2. Call `waitForStart()`.
+3. Create a boolean variable `clawOpen` starting as `false`.
+4. Check if `gamepad1.a` is pressed. If so, toggle `clawOpen` to `true`.
+5. If `clawOpen` is true, set the servo to position **1.0**. Otherwise, set it to **0.0**.
+
+Since the A button is pressed, the servo should end up at position **1.0**.
+
+Give it a try!

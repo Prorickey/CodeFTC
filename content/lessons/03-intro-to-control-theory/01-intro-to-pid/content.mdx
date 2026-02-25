@@ -1,0 +1,114 @@
+---
+title: "Intro to PID"
+description: "Understand proportional control and take your first step into control theory."
+---
+
+# Intro to PID
+
+So far, you have controlled motors by directly setting their power from gamepad input. That works well for TeleOp, but what if you need your robot to move to a **precise position** during autonomous? Simply setting a motor to full power and hoping for the best will not cut it. You need a **controller** -- and the most common one in FTC is PID.
+
+## Open Loop vs. Closed Loop
+
+Before we dive into PID, let's understand the fundamental problem.
+
+**Open loop control** means you send a command and hope for the best:
+
+```
+Set motor power to 0.5 for 2 seconds -> hope we went the right distance
+```
+
+The problem? The robot might be on carpet (more friction), the battery might be low (less voltage), or one motor might be slightly stronger than the other. Open loop control has no way to detect or correct these errors.
+
+**Closed loop control** means you continuously measure where you are, compare it to where you want to be, and adjust:
+
+```
+Where am I? -> How far off am I? -> How hard should I push? -> Repeat
+```
+
+This is what PID control does. It closes the loop by using **feedback** (typically from an encoder) to make intelligent adjustments.
+
+## What is Error?
+
+The foundation of all control theory is the concept of **error** -- the difference between where you want to be and where you actually are:
+
+```
+error = target - current
+```
+
+For example, if you want your motor's encoder to read 1000 ticks and it currently reads 200 ticks:
+
+```
+error = 1000 - 200 = 800
+```
+
+A large positive error means you are far below your target (need to move forward). A negative error means you overshot (need to move backward). An error of zero means you are exactly on target.
+
+## Proportional Control: The "P" in PID
+
+The simplest and most intuitive form of closed loop control is **proportional control**. The idea is beautifully simple:
+
+**The further you are from your target, the harder you push.**
+
+In code:
+
+```java
+double power = Kp * error;
+```
+
+Where **Kp** (pronounced "K-sub-P") is a constant you choose, called the **proportional gain**. It controls how aggressively the motor responds to error.
+
+Let's trace through an example with `Kp = 0.001`:
+
+| Current Position | Error (1000 - current) | Power (Kp * error) |
+|---|---|---|
+| 0 | 1000 | 1.0 |
+| 200 | 800 | 0.8 |
+| 500 | 500 | 0.5 |
+| 800 | 200 | 0.2 |
+| 950 | 50 | 0.05 |
+| 1000 | 0 | 0.0 |
+
+Notice the behavior: the motor starts fast and gradually slows down as it approaches the target. This is exactly what you want -- it prevents the robot from slamming to a stop or overshooting wildly.
+
+## Choosing Kp
+
+The value of Kp matters a lot:
+
+- **Kp too small**: The motor barely moves, or takes forever to reach the target. It might never get there due to friction ("steady-state error").
+- **Kp too large**: The motor overshoots the target, then overcorrects, then overshoots again, oscillating back and forth.
+- **Kp just right**: The motor reaches the target quickly and smoothly.
+
+Finding the right Kp is called **tuning**, and it is part art, part science. A good starting approach:
+
+1. Start with a very small Kp (like 0.001).
+2. Increase it gradually until the motor responds quickly.
+3. If it starts oscillating, back it down a bit.
+
+## What About the I and D?
+
+PID stands for **Proportional**, **Integral**, **Derivative**. In this lesson, we are only covering P. Here is a brief preview of the other two:
+
+- **I (Integral)**: Accumulates past errors over time. Helps eliminate steady-state error when P alone cannot quite reach the target.
+- **D (Derivative)**: Looks at how fast the error is changing. Acts as a damper to reduce overshoot and oscillation.
+
+We will cover I and D in future lessons. For now, pure P control is a powerful tool that will serve you well in many FTC scenarios.
+
+## Your Exercise
+
+In this exercise, you will implement a simple proportional controller. Here is the setup:
+
+- The motor `"testMotor"` has an encoder that currently reads **200** ticks.
+- Your target position is **1000** ticks.
+- Use a Kp value of **0.001**.
+
+Your task:
+
+1. Calculate the **error** (target minus current position).
+2. Calculate the motor **power** using `Kp * error`.
+3. Set the motor's power to that calculated value.
+
+The expected result: `error = 1000 - 200 = 800`, so `power = 0.001 * 800 = 0.8`.
+
+**Note:** In a real FTC program, this calculation would run inside a loop so the controller continuously adjusts as the motor moves. For this exercise, we are running it once to focus on the math.
+
+Give it a try!

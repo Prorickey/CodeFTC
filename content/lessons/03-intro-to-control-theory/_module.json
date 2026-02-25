@@ -1,0 +1,5 @@
+{
+  "title": "Intro to Control Theory",
+  "order": 3,
+  "description": "Learn PID control and other techniques to make your robot move precisely."
+}

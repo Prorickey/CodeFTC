@@ -1,0 +1,134 @@
+---
+title: "Full PID Controller"
+description: "Extend proportional control with integral and derivative terms for precise, stable motor positioning."
+---
+
+# Full PID Controller
+
+In the previous lesson, you implemented a **P controller** -- proportional control that sets motor power based on how far you are from the target. P control is a great start, but it has two significant weaknesses: it can leave a **steady-state error** (never quite reaching the target) and it can **overshoot** (blow past the target and oscillate). The full PID controller addresses both of these problems.
+
+## Review: Proportional Control
+
+Let's quickly review what we built last time:
+
+```java
+double error = target - currentPosition;
+double power = Kp * error;
+motor.setPower(power);
+```
+
+The further from the target, the harder the motor pushes. As it approaches the target, the power decreases. Simple and effective -- but not perfect.
+
+### The Steady-State Problem
+
+Imagine your motor is trying to reach a target of 1000 ticks. As it gets close, the error shrinks, and so does the power. At some point, the error might be 20 ticks, giving a power of `0.001 * 20 = 0.02`. But that tiny power might not be enough to overcome friction. The motor stalls 20 ticks short of the target and stays there forever. This is called **steady-state error**.
+
+### The Overshoot Problem
+
+If you increase Kp to fix the steady-state problem, the motor might approach the target too aggressively, fly past it, and then overcorrect in the other direction. This oscillation is called **overshoot**.
+
+## The I Term: Integral
+
+The **integral** term accumulates error over time. Think of it as the controller's memory -- it remembers that the motor has been slightly off target for a long time and gradually increases power to fix it.
+
+```java
+integral += error * deltaTime;
+double iTerm = Ki * integral;
+```
+
+Here is how it works:
+
+- If the motor is stuck 20 ticks short (steady-state error), the integral grows a little bit every loop iteration.
+- After enough time, the accumulated integral becomes large enough that `Ki * integral` provides the extra push needed to overcome friction.
+- Once the motor reaches the target (error = 0), the integral stops growing.
+
+### Integral Windup
+
+There is a danger with the integral term: if the motor is far from the target for a long time (for example, if something is blocking it), the integral accumulates to a huge value. When the obstacle is removed, the stored-up integral causes the motor to massively overshoot. This is called **integral windup**.
+
+The solution is to **clamp** the integral:
+
+```java
+integral += error * deltaTime;
+integral = Math.max(-maxIntegral, Math.min(maxIntegral, integral));
+```
+
+This limits how large the integral can get, preventing windup.
+
+## The D Term: Derivative
+
+The **derivative** term reacts to how fast the error is changing. It acts as a damper, slowing the motor down when it is approaching the target quickly to prevent overshoot.
+
+```java
+double derivative = (error - previousError) / deltaTime;
+double dTerm = Kd * derivative;
+```
+
+Here is the intuition:
+
+- When the motor is moving quickly toward the target, the error is decreasing rapidly, making the derivative a large negative number.
+- The D term opposes this rapid change, effectively applying the brakes.
+- This reduces overshoot and makes the system settle more smoothly.
+
+Think of it like a shock absorber on a car -- it resists sudden changes to create smoother motion.
+
+## The Full PID Formula
+
+Putting it all together:
+
+```java
+double error = target - currentPosition;
+
+// P term: proportional to current error
+double pTerm = Kp * error;
+
+// I term: proportional to accumulated error
+integral += error * deltaTime;
+double iTerm = Ki * integral;
+
+// D term: proportional to rate of change of error
+double derivative = (error - previousError) / deltaTime;
+double dTerm = Kd * derivative;
+
+// Combined output
+double power = pTerm + iTerm + dTerm;
+
+// Save for next iteration
+previousError = error;
+```
+
+Each term handles a different aspect of control:
+
+| Term | What it does | Fixes | Risk if too high |
+|---|---|---|---|
+| **P** | Reacts to current error | Gets you close to target | Oscillation |
+| **I** | Reacts to accumulated error | Steady-state error | Windup, overshoot |
+| **D** | Reacts to rate of change | Overshoot, oscillation | Noise sensitivity, sluggishness |
+
+## Tuning Approach
+
+Tuning PID gains is part of the craft of FTC programming. Here is a proven approach:
+
+1. **Start with P only.** Set Ki = 0, Kd = 0. Increase Kp until the motor reaches the target reasonably quickly. Accept some overshoot at this stage.
+2. **Add D to reduce overshoot.** Increase Kd until the overshoot goes away. The motor should approach the target smoothly without oscillating.
+3. **Add I for steady-state accuracy.** If the motor consistently stops a bit short of the target, add a small Ki. Use integral clamping to prevent windup.
+
+Many FTC teams find that a well-tuned PD controller (no integral term) is sufficient for most mechanisms.
+
+## Your Exercise
+
+For this exercise, you will implement a proportional controller. While the lesson covers the full PID, we will keep the exercise focused on the P term since our test harness runs a single iteration (I and D need multiple iterations to be meaningful).
+
+Here is the setup:
+
+- Motor `"testMotor"` has an encoder currently reading **300** ticks.
+- Your target is **1000** ticks.
+- Use `Kp = 0.001`.
+
+Your task:
+
+1. Calculate the **error**: `target - currentPosition` = 1000 - 300 = 700.
+2. Calculate the **power**: `Kp * error` = 0.001 * 700 = 0.7.
+3. Set the motor's power to the calculated value.
+
+Give it a try!

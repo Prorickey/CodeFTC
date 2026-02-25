@@ -1,0 +1,11 @@
+services:
+  ftc-sandbox:
+    build:
+      context: ..
+      dockerfile: docker/java-sandbox/Dockerfile
+    image: ftc-java-sandbox
+    # These are defaults; actual containers are created programmatically
+    network_mode: none
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 32

@@ -1,0 +1,152 @@
+---
+title: "Mecanum Drive"
+description: "Implement omnidirectional movement using mecanum wheels and the standard mecanum drive formula."
+---
+
+# Mecanum Drive
+
+Tank drive is simple and reliable, but it has a major limitation: the robot can only move forward, backward, and turn. It cannot strafe (move sideways). In FTC, where field positioning is critical, many teams use **mecanum wheels** to achieve omnidirectional movement. In this lesson, you will implement a full mecanum drive.
+
+## What Are Mecanum Wheels?
+
+Mecanum wheels are special wheels with **angled rollers** mounted around their circumference at 45 degrees. When all four wheels spin in certain combinations, the forces produced by the rollers combine to move the robot in any direction -- forward, backward, sideways, diagonally, or spinning in place.
+
+A mecanum drivetrain uses four motors, one for each wheel:
+
+```
+Front Left (FL)    Front Right (FR)
+     \\                /
+      \\              /
+       +-----------+
+       |           |
+       |   ROBOT   |
+       |           |
+       +-----------+
+      /              \\
+     /                \\
+Back Left (BL)     Back Right (BR)
+```
+
+The diagonal lines represent the roller direction on each wheel. This specific arrangement is what enables omnidirectional movement.
+
+## The Mecanum Drive Formula
+
+The beauty of mecanum drive is that the math is simple. You combine three movement components:
+
+- **y** -- Forward/backward (from left stick Y)
+- **x** -- Left/right strafe (from left stick X)
+- **rx** -- Rotation (from right stick X)
+
+Here is how you calculate each motor's power:
+
+```java
+double y = -gamepad1.left_stick_y;   // Forward/back (negated, as always)
+double x = gamepad1.left_stick_x * 1.1;  // Strafe (with correction factor)
+double rx = gamepad1.right_stick_x;  // Rotation
+
+double frontLeftPower  = y + x + rx;
+double backLeftPower   = y - x + rx;
+double frontRightPower = y - x - rx;
+double backRightPower  = y + x - rx;
+```
+
+Let's understand why this works:
+
+| Movement | FL | BL | FR | BR |
+|---|---|---|---|---|
+| **Forward** (y=1) | +1 | +1 | +1 | +1 |
+| **Strafe Right** (x=1) | +1 | -1 | -1 | +1 |
+| **Rotate Right** (rx=1) | +1 | +1 | -1 | -1 |
+
+When you combine these components by addition, you get smooth omnidirectional control.
+
+## The Strafe Correction Factor
+
+You may have noticed the `* 1.1` on the strafe axis:
+
+```java
+double x = gamepad1.left_stick_x * 1.1;
+```
+
+This is a common correction factor because mecanum wheels tend to produce slightly less force when strafing compared to driving forward. The 1.1 multiplier compensates for this. Some teams tune this value for their specific robot -- values between 1.0 and 1.5 are typical.
+
+## Power Normalization
+
+There is a problem with the formula above. If the driver pushes the stick fully forward AND fully to the right simultaneously, some motors could receive a power value greater than 1.0 -- which the motor controller will clip to 1.0, distorting the movement.
+
+The solution is **normalization**: divide all powers by the largest value if it exceeds 1.0:
+
+```java
+double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+frontLeftPower  = (y + x + rx) / denominator;
+backLeftPower   = (y - x + rx) / denominator;
+frontRightPower = (y - x - rx) / denominator;
+backRightPower  = (y + x - rx) / denominator;
+```
+
+The `Math.max(..., 1)` ensures we only scale down (never up). If all the components add up to less than 1.0, the denominator is just 1 and the values pass through unchanged.
+
+## Motor Direction
+
+On most FTC drivetrains, the motors on the left and right sides face opposite directions. The FTC SDK lets you reverse a motor's direction so that "positive power" always means "forward":
+
+```java
+frontRight.setDirection(DcMotor.Direction.REVERSE);
+backRight.setDirection(DcMotor.Direction.REVERSE);
+```
+
+After reversing the right-side motors, you can use the same formula for all four motors without worrying about signs.
+
+**Note:** In our tutorial exercise, the simulator handles motor directions for you, so you do not need to reverse any motors.
+
+## Complete Mecanum Drive
+
+Here is a full mecanum drive implementation:
+
+```java
+@TeleOp(name = "Mecanum Drive")
+public class MecanumDrive extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        DcMotor frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
+        DcMotor backLeft   = hardwareMap.get(DcMotor.class, "backLeft");
+        DcMotor frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        DcMotor backRight  = hardwareMap.get(DcMotor.class, "backRight");
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            double y  = -gamepad1.left_stick_y;
+            double x  = gamepad1.left_stick_x * 1.1;
+            double rx = gamepad1.right_stick_x;
+
+            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+
+            frontLeft.setPower((y + x + rx) / denominator);
+            backLeft.setPower((y - x + rx) / denominator);
+            frontRight.setPower((y - x - rx) / denominator);
+            backRight.setPower((y + x - rx) / denominator);
+        }
+    }
+}
+```
+
+## Your Exercise
+
+Implement mecanum drive with four motors. The simulated gamepad has:
+
+- `left_stick_y` = **-0.5** (pushing forward)
+- `left_stick_x` = **0.0** (no strafe)
+- `right_stick_x` = **0.0** (no rotation)
+
+With only forward input: `y = 0.5`, `x = 0.0`, `rx = 0.0`. The denominator is `max(0.5 + 0.0 + 0.0, 1) = 1`. So all four motors should be set to **0.5**.
+
+Your task:
+
+1. Get all four motors from the hardware map (`frontLeft`, `backLeft`, `frontRight`, `backRight`).
+2. Call `waitForStart()`.
+3. Calculate `y`, `x`, and `rx` from the gamepad (remember to negate left_stick_y and apply the 1.1 strafe correction).
+4. Calculate the denominator for normalization.
+5. Set all four motor powers using the mecanum formula.
+
+Give it a try!

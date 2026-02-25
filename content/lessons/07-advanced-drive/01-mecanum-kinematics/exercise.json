@@ -1,0 +1,81 @@
+{
+  "title": "Mecanum Kinematics",
+  "className": "StudentCode",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Mecanum Drive\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor frontLeft  = hardwareMap.get(DcMotor.class, \"frontLeft\");\n        DcMotor frontRight = hardwareMap.get(DcMotor.class, \"frontRight\");\n        DcMotor backLeft   = hardwareMap.get(DcMotor.class, \"backLeft\");\n        DcMotor backRight  = hardwareMap.get(DcMotor.class, \"backRight\");\n\n        waitForStart();\n\n        // Read gamepad inputs\n        double forward  = -gamepad1.left_stick_y;  // Forward (negate Y)\n        double strafe   =  gamepad1.left_stick_x;  // Strafe right\n        double rotation =  gamepad1.right_stick_x; // Rotate clockwise\n\n        // TODO: Calculate raw motor powers using mecanum inverse kinematics\n        //   fl = forward - strafe - rotation\n        //   fr = forward + strafe + rotation\n        //   bl = forward + strafe - rotation\n        //   br = forward - strafe + rotation\n\n        // TODO: Find the maximum absolute value among all four powers\n        //   Hint: use Math.max() and Math.abs()\n\n        // TODO: If the maximum exceeds 1.0, divide all four powers by it\n        //   This normalizes the powers while preserving their ratios\n\n        // TODO: Set each motor's power\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Mecanum Drive\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor frontLeft  = hardwareMap.get(DcMotor.class, \"frontLeft\");\n        DcMotor frontRight = hardwareMap.get(DcMotor.class, \"frontRight\");\n        DcMotor backLeft   = hardwareMap.get(DcMotor.class, \"backLeft\");\n        DcMotor backRight  = hardwareMap.get(DcMotor.class, \"backRight\");\n\n        waitForStart();\n\n        // Read gamepad inputs\n        double forward  = -gamepad1.left_stick_y;  // Forward (negate Y)\n        double strafe   =  gamepad1.left_stick_x;  // Strafe right\n        double rotation =  gamepad1.right_stick_x; // Rotate clockwise\n\n        // Calculate raw motor powers using mecanum inverse kinematics\n        double fl = forward - strafe - rotation;\n        double fr = forward + strafe + rotation;\n        double bl = forward + strafe - rotation;\n        double br = forward - strafe + rotation;\n\n        // Find the maximum absolute value among all four powers\n        double max = Math.max(Math.abs(fl), Math.max(Math.abs(fr),\n                     Math.max(Math.abs(bl), Math.abs(br))));\n\n        // If the maximum exceeds 1.0, divide all four powers by it\n        if (max > 1.0) {\n            fl /= max;\n            fr /= max;\n            bl /= max;\n            br /= max;\n        }\n\n        // Set each motor's power\n        frontLeft.setPower(fl);\n        frontRight.setPower(fr);\n        backLeft.setPower(bl);\n        backRight.setPower(br);\n    }\n}",
+  "hardwareConfig": {
+    "motors": {
+      "frontLeft": {
+        "type": "DcMotor"
+      },
+      "frontRight": {
+        "type": "DcMotor"
+      },
+      "backLeft": {
+        "type": "DcMotor"
+      },
+      "backRight": {
+        "type": "DcMotor"
+      }
+    },
+    "gamepad": {
+      "left_stick_y": -0.6,
+      "left_stick_x": 0.4,
+      "right_stick_x": 0.3
+    }
+  },
+  "tests": [
+    {
+      "type": "method_call",
+      "name": "waitForStart() is called",
+      "method": "waitForStart",
+      "assertion": "called"
+    },
+    {
+      "type": "motor_power",
+      "name": "Front-right motor is 1.0 (highest power, normalized)",
+      "device": "frontRight",
+      "expected": 1.0,
+      "tolerance": 0.05
+    },
+    {
+      "type": "motor_power",
+      "name": "Front-left motor is approximately -0.077 (normalized from -0.1)",
+      "device": "frontLeft",
+      "expected": -0.077,
+      "tolerance": 0.05
+    },
+    {
+      "type": "motor_power",
+      "name": "Back-left motor is approximately 0.538 (normalized from 0.7)",
+      "device": "backLeft",
+      "expected": 0.538,
+      "tolerance": 0.05
+    },
+    {
+      "type": "motor_power",
+      "name": "Back-right motor is approximately 0.385 (normalized from 0.5)",
+      "device": "backRight",
+      "expected": 0.385,
+      "tolerance": 0.05
+    }
+  ],
+  "hints": [
+    {
+      "title": "The four kinematic equations",
+      "content": "The equations are: `fl = forward - strafe - rotation`, `fr = forward + strafe + rotation`, `bl = forward + strafe - rotation`, `br = forward - strafe + rotation`. With forward=0.6, strafe=0.4, rotation=0.3: fl=-0.1, fr=1.3, bl=0.7, br=0.5."
+    },
+    {
+      "title": "Finding the maximum absolute value",
+      "content": "Use nested `Math.max()` calls: `double max = Math.max(Math.abs(fl), Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br))));`. This finds the largest magnitude among all four powers."
+    },
+    {
+      "title": "How normalization works",
+      "content": "If `max > 1.0`, divide every power by `max`: `fl /= max; fr /= max; bl /= max; br /= max;`. Since max is 1.3, the front-right goes from 1.3 to 1.0, and all others scale proportionally. Do not normalize if max is already at or below 1.0."
+    },
+    {
+      "title": "Putting it all together",
+      "content": "Four steps: (1) Compute raw powers with the kinematic equations. (2) Find the max absolute value. (3) If max > 1.0, divide all powers by max. (4) Call `setPower()` on each motor with the normalized value."
+    }
+  ]
+}

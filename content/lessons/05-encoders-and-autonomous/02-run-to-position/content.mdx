@@ -1,0 +1,114 @@
+---
+title: "Run to Position"
+description: "Use the RUN_TO_POSITION mode to drive a motor to an exact encoder target."
+---
+
+# Run to Position
+
+In the previous lesson, you learned how to read encoder values. Now you will learn how to use them to **command** a motor to go to a specific position. The FTC SDK has a built-in run mode called `RUN_TO_POSITION` that handles this for you -- you tell the motor where to go, and it drives itself there.
+
+## What is RUN_TO_POSITION?
+
+`RUN_TO_POSITION` is a motor run mode that turns the motor into a position-controlled actuator. Instead of saying "run at this power," you say "go to this tick count," and the motor's internal controller does the rest.
+
+This is incredibly useful for:
+
+- **Autonomous driving** -- Move forward exactly 1000 ticks
+- **Arm positioning** -- Raise the arm to a specific height
+- **Intake mechanisms** -- Rotate a mechanism a specific number of degrees
+
+## The Correct Sequence
+
+Setting up `RUN_TO_POSITION` requires a specific sequence of steps. Getting the order wrong is one of the most common mistakes in FTC programming:
+
+```java
+// Step 1: Reset the encoder
+motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+// Step 2: Set the target position (in ticks)
+motor.setTargetPosition(1000);
+
+// Step 3: Set the run mode to RUN_TO_POSITION
+motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+// Step 4: Set the power (this is the maximum speed the motor will use)
+motor.setPower(0.5);
+```
+
+**The order matters.** Here is why:
+
+1. **Reset first** -- You want to start counting from zero, so reset the encoder.
+2. **Set target before mode** -- The motor needs to know where to go before you tell it to start going there. If you set `RUN_TO_POSITION` before setting a target, the motor may briefly try to go to position 0 (or whatever the last target was).
+3. **Set mode before power** -- Setting the mode to `RUN_TO_POSITION` changes how the motor interprets the power value. The power becomes a *maximum speed*, not a direct power command.
+4. **Set power last** -- This starts the motor moving toward the target. The motor will accelerate up to this power level and decelerate as it approaches the target.
+
+## Understanding Power in RUN_TO_POSITION
+
+In `RUN_TO_POSITION` mode, the `setPower()` value works differently than in normal mode:
+
+- The value you set is the **maximum power** the motor will use.
+- The motor automatically adjusts its actual power to reach the target smoothly.
+- **The power should always be positive** in `RUN_TO_POSITION` mode, even if the target is behind the current position. The motor figures out which direction to go on its own.
+- Setting power to 0 stops the motor even if it has not reached the target.
+
+## Checking if the Motor is Done
+
+After commanding a motor to a position, you often need to wait until it gets there. The `isBusy()` method returns `true` while the motor is still moving toward its target:
+
+```java
+while (motor.isBusy() && opModeIsActive()) {
+    telemetry.addData("Position", motor.getCurrentPosition());
+    telemetry.addData("Target", 1000);
+    telemetry.update();
+}
+
+// Motor has reached the target (or opMode was stopped)
+motor.setPower(0);  // Stop the motor
+```
+
+The `opModeIsActive()` check is important -- it ensures the loop exits if the driver presses Stop on the Driver Station.
+
+## A Complete Example
+
+Here is a full example that drives a motor to position 1000:
+
+```java
+DcMotor motor = hardwareMap.get(DcMotor.class, "driveMotor");
+
+motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+motor.setTargetPosition(1000);
+motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+motor.setPower(0.5);
+
+waitForStart();
+
+while (motor.isBusy() && opModeIsActive()) {
+    telemetry.addData("Moving to", 1000);
+    telemetry.addData("Currently at", motor.getCurrentPosition());
+    telemetry.update();
+}
+
+motor.setPower(0);
+```
+
+## Common Mistakes
+
+- **Forgetting to reset the encoder** -- The motor remembers its position from the last run. Always reset if you want to start from zero.
+- **Setting power before mode** -- If you call `setPower(0.5)` while still in `RUN_USING_ENCODER` mode, the motor will just run at 0.5 power instead of going to a position.
+- **Using negative power** -- In `RUN_TO_POSITION`, always use positive power. Negative power can cause unexpected behavior.
+- **Not checking isBusy()** -- Without a wait loop, your code will immediately move to the next command while the motor is still moving.
+
+## Your Exercise
+
+In this exercise, you will set up a motor to drive to a target position of **1000 ticks** using `RUN_TO_POSITION`.
+
+Your task (follow this exact sequence):
+
+1. Get the motor `"driveMotor"` from the hardware map.
+2. Reset the encoder using `STOP_AND_RESET_ENCODER`.
+3. Set the target position to **1000**.
+4. Set the run mode to `RUN_TO_POSITION`.
+5. Call `waitForStart()`.
+6. Set the motor power to **0.5** to start moving.
+
+Give it a try!

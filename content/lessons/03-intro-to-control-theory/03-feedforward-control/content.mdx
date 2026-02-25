@@ -1,0 +1,133 @@
+---
+title: "Feedforward Control"
+description: "Combine PID feedback with feedforward prediction to handle gravity, friction, and other predictable forces."
+---
+
+# Feedforward Control
+
+PID is a powerful tool, but it is purely **reactive** -- it only responds to error after it occurs. For some mechanisms, this is not enough. An arm fighting gravity will always sag before the PID reacts. An elevator might drop slightly before the controller catches it. In this lesson, you will learn about **feedforward control**, which predicts the output needed and applies it proactively.
+
+## What is Feedforward?
+
+Feedforward is an **open-loop** component that estimates the motor power needed based on what you know about the system, without waiting for error to occur.
+
+Think of it this way:
+
+- **Feedback (PID)**: "I see I am off target. Let me correct."
+- **Feedforward**: "I know gravity is pulling the arm down, so I will apply power to counteract it before the arm even starts to fall."
+
+The key insight is that feedforward handles the **predictable** forces, and PID handles the **unpredictable** errors that remain.
+
+## Gravity Compensation for Arms
+
+The most common use of feedforward in FTC is **gravity compensation** for arm mechanisms. When an arm extends horizontally, gravity exerts the most torque. When the arm points straight up or down, gravity exerts no torque. This follows a cosine relationship:
+
+```
+gravityPower = kG * cos(armAngle)
+```
+
+Where:
+- **kG** is the gravity constant -- the power needed to hold the arm steady at the horizontal position.
+- **armAngle** is the arm's current angle (0 degrees = horizontal, 90 degrees = vertical).
+
+Without feedforward, a PID controller has to "discover" that the arm is sagging through error accumulation. With feedforward, you tell the motor "apply this much power just to hold position" and let the PID handle the fine adjustments.
+
+## Why Feedback Alone Falls Short
+
+Consider an arm controlled by pure PID:
+
+1. The arm is at the target position. Error = 0, so PID output = 0.
+2. Gravity pulls the arm down. Now there is error.
+3. The PID detects the error and starts applying power.
+4. The arm moves back up, but there is a visible droop-and-recover cycle.
+
+With feedforward:
+
+1. The arm is at the target. PID output = 0, but feedforward applies the gravity-holding power.
+2. The arm stays steady because the feedforward compensates for gravity continuously.
+3. If a small disturbance occurs, the PID handles it quickly because it only needs to deal with the small unexpected error, not the large predictable force.
+
+## Static Friction Compensation
+
+Another form of feedforward is **static friction compensation**. Motors require a minimum power to start moving due to friction. A P controller with a small error might calculate a power of 0.02, but the motor might not actually move until 0.05.
+
+The fix: add a constant "kick" in the direction of motion:
+
+```java
+double kS = 0.05; // Static friction constant
+double feedforward = kS * Math.signum(error);
+double power = pidOutput + feedforward;
+```
+
+`Math.signum(error)` returns +1 if the error is positive, -1 if negative, and 0 if the error is exactly zero. This ensures the friction compensation pushes in the right direction.
+
+## Combining Feedforward with PID
+
+The general pattern for feedforward + PID is:
+
+```java
+double pidOutput = Kp * error;  // (+ Ki * integral + Kd * derivative)
+double feedforwardOutput = calculateFeedforward();
+double totalPower = pidOutput + feedforwardOutput;
+motor.setPower(totalPower);
+```
+
+For an arm with gravity compensation:
+
+```java
+// PID for position correction
+double error = targetPosition - currentPosition;
+double pidPower = Kp * error;
+
+// Feedforward for gravity
+double armAngle = getArmAngleRadians();
+double gravityFF = kG * Math.cos(armAngle);
+
+// Combined
+double totalPower = pidPower + gravityFF;
+motor.setPower(totalPower);
+```
+
+The PID and feedforward work together: feedforward provides the baseline power to counteract known forces, and PID fine-tunes the position.
+
+## Common FTC Feedforward Applications
+
+| Mechanism | Feedforward Type | Formula |
+|---|---|---|
+| **Arm** | Gravity compensation | `kG * cos(angle)` |
+| **Elevator/Lift** | Constant gravity hold | `kG` (constant) |
+| **Drivetrain** | Velocity feedforward | `kV * targetVelocity` |
+| **Turret** | Static friction | `kS * signum(error)` |
+
+For an elevator, gravity is constant regardless of position (unlike an arm where it varies with angle), so the feedforward is just a constant power added to the PID output.
+
+## Simplified Feedforward
+
+For many FTC mechanisms, a simplified approach works well. Instead of calculating exact angles and trigonometry, you can use a **constant gravity hold**:
+
+```java
+double kG = 0.1;  // Power needed to hold the arm against gravity
+double power = Kp * error + kG;
+```
+
+This is not as precise as the cosine-based approach, but it is much simpler and often "good enough" for competition. The PID compensates for the imprecision.
+
+## Your Exercise
+
+Implement a P controller with a constant gravity feedforward for an arm motor. Here is the setup:
+
+- Motor `"armMotor"` has an encoder currently at **200** ticks.
+- Target position is **500** ticks.
+- `Kp = 0.001` (proportional gain).
+- `kG = 0.1` (gravity compensation constant).
+
+Your task:
+
+1. Calculate the **error**: `target - current` = 500 - 200 = 300.
+2. Calculate the **P term**: `Kp * error` = 0.001 * 300 = 0.3.
+3. Add the **gravity feedforward**: total power = P term + kG = 0.3 + 0.1 = **0.4**.
+4. Set the motor's power to the total.
+
+This demonstrates the core idea: the P controller provides 0.3 of power to move toward the target, and the feedforward adds 0.1 of power to fight gravity. Together, the arm gets to the target faster and holds more firmly.
+
+Give it a try!

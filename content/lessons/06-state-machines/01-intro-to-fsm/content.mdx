@@ -1,0 +1,202 @@
+---
+title: "Intro to Finite State Machines"
+description: "Learn how finite state machines let you organize complex robot behavior without blocking your main loop."
+---
+
+# Intro to Finite State Machines
+
+As your robot programs grow more complex, you will quickly run into a problem: how do you manage multiple steps of behavior without using `sleep()` or blocking calls that freeze your entire robot? The answer is one of the most powerful patterns in robotics programming -- the **Finite State Machine** (FSM).
+
+## What is a Finite State Machine?
+
+A Finite State Machine is a programming pattern where your system is always in exactly **one state** out of a defined set of states. The system can **transition** from one state to another when certain **conditions** are met.
+
+Think of a traffic light. It has three states: GREEN, YELLOW, and RED. It transitions between them based on a timer. At any moment, it is in exactly one state, and there are clear rules for when it changes.
+
+In FTC, an FSM lets you describe complex multi-step behavior in a way that plays nicely with a loop -- no blocking, no sleeping, no freezing.
+
+## Why Not Just Use sleep()?
+
+You may have written code like this before:
+
+```java
+// BAD: Sequential code with sleep()
+liftMotor.setPower(1.0);
+sleep(2000);  // Wait 2 seconds for lift to rise
+liftMotor.setPower(0.0);
+clawServo.setPosition(0.0);  // Close claw
+sleep(500);
+liftMotor.setPower(-1.0);
+sleep(2000);  // Lower lift
+liftMotor.setPower(0.0);
+```
+
+This works for simple sequences, but it has serious problems:
+
+1. **Everything stops.** While the lift is rising for 2 seconds, your drivetrain cannot respond to gamepad input. Your robot is frozen.
+2. **No multitasking.** You cannot run the lift and drivetrain at the same time.
+3. **Fragile timing.** If the lift takes 1.8 seconds instead of 2, you waste 0.2 seconds. If it takes 2.2 seconds, you stop early.
+4. **Hard to interrupt.** What if the driver wants to cancel the action mid-way?
+
+An FSM solves all of these problems.
+
+## States, Transitions, and Conditions
+
+Every FSM has three components:
+
+- **States**: The distinct modes your mechanism can be in (e.g., IDLE, RAISING, HOLDING, LOWERING).
+- **Transitions**: The movement from one state to another.
+- **Conditions**: What triggers a transition (e.g., a button press, a sensor reading, a timer expiring).
+
+Here is a diagram of a simple lift FSM:
+
+```
+  [IDLE] ---(button A pressed)---> [RAISING]
+  [RAISING] ---(reached target)---> [HOLDING]
+  [HOLDING] ---(button B pressed)---> [LOWERING]
+  [LOWERING] ---(reached bottom)---> [IDLE]
+```
+
+The lift is always in exactly one of these four states, and it only changes state when a specific condition is met.
+
+## Java Enums for State Representation
+
+Java enums are the perfect way to represent FSM states. They are type-safe, readable, and cannot accidentally take on invalid values:
+
+```java
+enum LiftState {
+    IDLE,
+    RAISING,
+    HOLDING,
+    LOWERING
+}
+```
+
+You then declare a variable to track the current state:
+
+```java
+LiftState liftState = LiftState.IDLE;
+```
+
+## Switch Statements for State Logic
+
+The `switch` statement is the natural companion to enums for FSM logic. Each `case` handles the behavior and transition logic for one state:
+
+```java
+switch (liftState) {
+    case IDLE:
+        liftMotor.setPower(0.0);
+        if (gamepad1.a) {
+            liftState = LiftState.RAISING;
+        }
+        break;
+
+    case RAISING:
+        liftMotor.setPower(1.0);
+        if (liftMotor.getCurrentPosition() >= targetPosition) {
+            liftState = LiftState.HOLDING;
+        }
+        break;
+
+    case HOLDING:
+        liftMotor.setPower(0.1);  // Small hold power
+        if (gamepad1.b) {
+            liftState = LiftState.LOWERING;
+        }
+        break;
+
+    case LOWERING:
+        liftMotor.setPower(-0.8);
+        if (liftMotor.getCurrentPosition() <= 0) {
+            liftState = LiftState.IDLE;
+        }
+        break;
+}
+```
+
+Notice how each state does two things:
+
+1. **Performs its action** (sets motor power).
+2. **Checks for transition conditions** (button press, position reached).
+
+## The opModeIsActive() Loop as the FSM Driver
+
+The key insight is that this switch statement runs inside your main loop. Every iteration of the loop, the FSM checks the current state, performs the appropriate action, and evaluates whether to transition:
+
+```java
+waitForStart();
+
+while (opModeIsActive()) {
+    // FSM runs here -- executes once per loop
+    switch (liftState) {
+        case IDLE:
+            // ...
+            break;
+        case RAISING:
+            // ...
+            break;
+        // ... other states
+    }
+
+    // Drivetrain code also runs here -- never blocked!
+    double drive = -gamepad1.left_stick_y;
+    double turn = gamepad1.right_stick_x;
+    leftMotor.setPower(drive + turn);
+    rightMotor.setPower(drive - turn);
+}
+```
+
+Because the FSM never blocks, the drivetrain code runs every single loop iteration, even while the lift is raising. This is the fundamental advantage of the FSM approach.
+
+## Putting It All Together
+
+Here is a complete example of a simple lift FSM:
+
+```java
+@TeleOp(name = "Lift FSM")
+public class LiftFSM extends LinearOpMode {
+
+    enum LiftState {
+        IDLE,
+        RAISING,
+        HOLDING
+    }
+
+    @Override
+    public void runOpMode() {
+        DcMotor liftMotor = hardwareMap.get(DcMotor.class, "liftMotor");
+        LiftState state = LiftState.IDLE;
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            switch (state) {
+                case IDLE:
+                    liftMotor.setPower(0.0);
+                    if (gamepad1.a) {
+                        state = LiftState.RAISING;
+                    }
+                    break;
+                case RAISING:
+                    liftMotor.setPower(1.0);
+                    if (liftMotor.getCurrentPosition() >= 1000) {
+                        state = LiftState.HOLDING;
+                    }
+                    break;
+                case HOLDING:
+                    liftMotor.setPower(0.1);
+                    break;
+            }
+
+            telemetry.addData("Lift State", state);
+            telemetry.update();
+        }
+    }
+}
+```
+
+## Your Exercise
+
+Time to build your first state machine! You will implement a simplified lift FSM with three states: IDLE, RAISING, and HOLDING. When `gamepad1.a` is pressed, the lift should transition from IDLE to RAISING and the motor should run at full power.
+
+The exercise focuses on the core FSM pattern: using an enum for states and a switch statement to control behavior. Fill in the switch cases to make the lift respond correctly.

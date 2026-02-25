@@ -1,0 +1,112 @@
+---
+title: "Touch Sensor"
+description: "Read a digital touch sensor and use it as a limit switch to protect your robot's mechanisms."
+---
+
+# Touch Sensor
+
+Sensors give your robot the ability to perceive the world around it. The simplest sensor you will use in FTC is a **touch sensor** (also called a limit switch). In this lesson, you will learn how to read a touch sensor and use it to protect a mechanism from over-extending.
+
+## What is a Touch Sensor?
+
+A touch sensor is a simple digital device: it is either **pressed** or **not pressed**. There is no in-between. In FTC, touch sensors are typically wired to the digital ports on a REV Control Hub or Expansion Hub and accessed through the `DigitalChannel` interface.
+
+Common uses for touch sensors in FTC:
+
+- **Limit switches** on arms and lifts to prevent them from going too far
+- **Homing switches** to detect when a mechanism has returned to its starting position
+- **Object detection** for simple "is something there?" checks
+
+## The DigitalChannel Interface
+
+To use a touch sensor, you get it from the hardware map as a `DigitalChannel`:
+
+```java
+DigitalChannel touchSensor = hardwareMap.get(DigitalChannel.class, "touchSensor");
+```
+
+Before reading from it, you need to set its **mode** to input:
+
+```java
+touchSensor.setMode(DigitalChannel.Mode.INPUT);
+```
+
+This tells the Control Hub that this port should be read from, not written to. You will always use `Mode.INPUT` for touch sensors.
+
+## Reading the State -- The Inversion Gotcha
+
+Here is the part that trips up many teams. The `getState()` method returns a `boolean`, but the logic is **inverted** from what you might expect:
+
+| Physical State | `getState()` returns |
+|----------------|---------------------|
+| **Not pressed** (open circuit) | `true` |
+| **Pressed** (closed circuit) | `false` |
+
+This happens because the REV Hub digital ports use pull-up resistors internally. When the switch is open (not pressed), the line is pulled high (`true`). When the switch closes (pressed), it connects to ground (`false`).
+
+So the check for "is the sensor pressed?" looks like this:
+
+```java
+if (!touchSensor.getState()) {
+    // The sensor IS pressed
+}
+```
+
+Or equivalently:
+
+```java
+if (touchSensor.getState() == false) {
+    // The sensor IS pressed
+}
+```
+
+Many teams define a helper variable to make the code more readable:
+
+```java
+boolean isPressed = !touchSensor.getState();
+```
+
+## Using a Touch Sensor as a Limit Switch
+
+The most common use case for a touch sensor in FTC is as a **limit switch** -- a safety mechanism that prevents a motor from driving a mechanism too far.
+
+Imagine you have a lift with a motor. Without a limit switch, if the driver keeps holding the "up" button after the lift reaches its maximum height, the motor will keep trying to push against the physical stop, potentially stripping gears or burning out the motor.
+
+With a limit switch mounted at the top of the lift's travel, you can automatically stop the motor:
+
+```java
+DigitalChannel limitSwitch = hardwareMap.get(DigitalChannel.class, "limitSwitch");
+limitSwitch.setMode(DigitalChannel.Mode.INPUT);
+
+DcMotor liftMotor = hardwareMap.get(DcMotor.class, "liftMotor");
+
+// In your control loop:
+boolean switchPressed = !limitSwitch.getState();
+
+if (switchPressed) {
+    liftMotor.setPower(0.0);  // Stop! We have hit the limit.
+} else {
+    liftMotor.setPower(0.5);  // Safe to keep moving.
+}
+```
+
+This pattern -- "check before you drive" -- is fundamental to safe robot operation. You can extend it to have limit switches at both ends of a mechanism's travel, or combine it with encoder readings for even more precise control.
+
+## Your Exercise
+
+In this exercise, you will implement a limit switch safety system. You have:
+
+- A lift motor named `"liftMotor"`
+- A touch sensor named `"limitSwitch"` (currently **pressed**, meaning `getState()` returns `false`)
+
+Your task:
+
+1. Get the `DigitalChannel` from the hardware map and set it to `INPUT` mode.
+2. Get the `DcMotor` from the hardware map.
+3. After `waitForStart()`, check the sensor state.
+4. If the limit switch is pressed (`getState()` is `false`), set the motor power to **0.0** (stop).
+5. If the limit switch is not pressed, set the motor power to **0.5** (run the lift).
+
+Since the simulated switch is pressed, your motor should end up stopped at power 0.0.
+
+Give it a try!

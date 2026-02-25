@@ -1,0 +1,132 @@
+---
+title: "Mecanum Kinematics"
+description: "Understand the math behind mecanum wheels and implement inverse kinematics with power normalization."
+---
+
+# Mecanum Kinematics
+
+Mecanum wheels are one of the most popular drive systems in FTC because they allow your robot to move in **any direction** -- forward, backward, sideways, diagonally -- without turning. This omnidirectional movement comes from the angled rollers on each wheel, and the math that makes it work is called **mecanum kinematics**.
+
+## How Mecanum Wheels Work
+
+Each mecanum wheel has rollers mounted at a 45-degree angle to the wheel's axis. When the wheel spins, the rollers create a force that is a combination of forward/backward and sideways motion. By spinning the four wheels at different speeds and directions, you can combine these forces to produce any desired robot velocity.
+
+A standard mecanum drivetrain has four motors:
+
+```
+  Front Left (FL)    Front Right (FR)
+       \\                  /
+        \\                /
+         \\              /
+  Back Left (BL)     Back Right (BR)
+       /                  \\
+      /                    \\
+     /                      \\
+```
+
+The slash marks represent the roller angles. This specific arrangement is critical -- swapping wheels will break the kinematics.
+
+## Forward and Inverse Kinematics
+
+There are two directions to the math:
+
+**Forward kinematics** answers: "Given the speed of each wheel, what is the robot's velocity?" This is useful for odometry and tracking.
+
+**Inverse kinematics** answers: "Given a desired robot velocity, what speed should each wheel be?" This is what you need for driving.
+
+## The Inverse Kinematic Equations
+
+For a desired robot motion with three components:
+- **forward** (v_f): positive means the robot moves forward
+- **strafe** (v_s): positive means the robot moves to the right
+- **rotation** (omega): positive means the robot turns clockwise
+
+The wheel powers are:
+
+```
+frontLeft  = forward - strafe - rotation
+frontRight = forward + strafe + rotation
+backLeft   = forward + strafe - rotation
+backRight  = forward - strafe + rotation
+```
+
+These equations come from decomposing each wheel's contribution based on its roller angle. The signs depend on your specific wheel arrangement -- the pattern above assumes the standard FTC configuration.
+
+### Where Do the Signs Come From?
+
+Consider the front-left wheel. Its rollers are angled such that:
+- Spinning it forward contributes to **forward** motion (+ forward)
+- Spinning it forward pushes the robot to the **right** (- strafe, since we want left strafe to be negative spin)
+- Spinning it forward contributes to **clockwise** rotation (- rotation)
+
+Each wheel has a different combination of these signs based on its position and roller angle.
+
+## Forward Kinematic Equations
+
+For completeness, the forward kinematics (wheel velocities to robot velocity) are:
+
+```
+forward  = (v_fl + v_fr + v_bl + v_br) / 4
+strafe   = (-v_fl + v_fr + v_bl - v_br) / 4
+rotation = (-v_fl + v_fr - v_bl + v_br) / (4 * trackWidth)
+```
+
+These are the inverse of the equations above. You will use them when building odometry systems.
+
+## Power Normalization
+
+There is a practical problem with the inverse kinematic equations: the computed wheel powers can exceed the valid range of [-1.0, 1.0]. For example, if forward = 0.6, strafe = 0.4, and rotation = 0.3:
+
+```
+frontLeft  = 0.6 - 0.4 - 0.3 = -0.1
+frontRight = 0.6 + 0.4 + 0.3 =  1.3   // Over the limit!
+backLeft   = 0.6 + 0.4 - 0.3 =  0.7
+backRight  = 0.6 - 0.4 + 0.3 =  0.5
+```
+
+The front-right motor would be commanded to 1.3, which is impossible. If you just clamp it to 1.0, you distort the intended motion -- the ratios between the wheels change, and the robot will not move in the direction you wanted.
+
+The correct solution is **normalization**: find the maximum absolute value among all four powers, and if it exceeds 1.0, divide all four powers by that maximum:
+
+```java
+double max = Math.max(Math.abs(fl), Math.max(Math.abs(fr),
+             Math.max(Math.abs(bl), Math.abs(br))));
+
+if (max > 1.0) {
+    fl /= max;
+    fr /= max;
+    bl /= max;
+    br /= max;
+}
+```
+
+After normalization with max = 1.3:
+
+```
+frontLeft  = -0.1 / 1.3 = -0.077
+frontRight =  1.3 / 1.3 =  1.0
+backLeft   =  0.7 / 1.3 =  0.538
+backRight  =  0.5 / 1.3 =  0.385
+```
+
+The ratios between the wheels are preserved, so the robot still moves in the correct direction. The trade-off is that the overall speed is reduced slightly.
+
+## Why Strafe Is Slower
+
+You may notice that your robot strafes more slowly than it drives forward. This is not a software bug -- it is physics. When strafing, the mecanum rollers slide sideways across the ground, which creates more friction than rolling forward. A typical mecanum robot strafes at about 70-80% of its forward speed. Keep this in mind when tuning autonomous routines.
+
+## Reading Gamepad Input for Mecanum
+
+The standard mapping for a mecanum drivetrain is:
+
+```java
+double forward = -gamepad1.left_stick_y;   // Negate Y (forward = negative)
+double strafe  =  gamepad1.left_stick_x;   // Positive = right
+double rotation = gamepad1.right_stick_x;  // Positive = clockwise
+```
+
+The Y-axis negation is the same as with tank drive -- pushing the stick forward gives a negative value, so we negate it.
+
+## Your Exercise
+
+Implement the mecanum inverse kinematics with power normalization. Given gamepad inputs of forward = 0.6, strafe = 0.4, and rotation = 0.3, calculate the four motor powers and normalize them so no power exceeds 1.0. The front-right motor should end up at exactly 1.0 (it has the highest raw power of 1.3), and all other motors should be scaled proportionally.

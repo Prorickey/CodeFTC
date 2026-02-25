@@ -1,0 +1,108 @@
+---
+title: "IMU Basics"
+description: "Initialize the built-in IMU and read your robot's heading using yaw, pitch, and roll angles."
+---
+
+# IMU Basics
+
+Every REV Control Hub has a built-in **IMU** (Inertial Measurement Unit) -- a sensor that measures the robot's orientation in three-dimensional space. The IMU is one of the most powerful sensors available in FTC because it works without any external references. No matter where your robot is on the field, the IMU knows which way it is pointing.
+
+## What is an IMU?
+
+An IMU combines multiple internal sensors (accelerometers and gyroscopes) to track rotation. It measures three angles of rotation, commonly called **yaw**, **pitch**, and **roll**:
+
+| Angle | Axis | Description |
+|-------|------|-------------|
+| **Yaw** (Heading) | Vertical axis | Rotation left/right, like turning a steering wheel. This is the one you will use most. |
+| **Pitch** | Side-to-side axis | Tilting forward/backward, like a rocking chair. |
+| **Roll** | Front-to-back axis | Tilting side to side, like a boat rocking. |
+
+For most FTC applications, **yaw** (heading) is the angle you care about. It tells you which direction the robot is facing. If the robot starts facing forward (0 degrees) and turns 90 degrees to the left, the yaw will read 90 degrees.
+
+## Initializing the IMU
+
+Before you can read angles from the IMU, you need to initialize it. The initialization tells the IMU how the Control Hub is mounted on your robot, since it might be rotated or flipped.
+
+Here is the initialization sequence:
+
+```java
+IMU imu = hardwareMap.get(IMU.class, "imu");
+
+IMU.Parameters parameters = new IMU.Parameters(
+    new RevHubOrientationOnRobot(
+        RevHubOrientationOnRobot.LogoFacingDirection.UP,
+        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+    )
+);
+
+imu.initialize(parameters);
+```
+
+The two direction parameters describe how the Control Hub is physically mounted:
+
+- **LogoFacingDirection**: Which direction does the REV logo on the hub face? (UP, DOWN, FORWARD, BACKWARD, LEFT, RIGHT)
+- **UsbFacingDirection**: Which direction do the USB ports face?
+
+These settings matter because the IMU needs to know its physical orientation to give you meaningful angles. If your hub is mounted logo-up with USB ports facing forward, the defaults shown above work perfectly.
+
+## Reading Angles
+
+Once initialized, you read the current angles using `getRobotYawPitchRollAngles()`:
+
+```java
+YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();
+
+double yaw   = angles.getYaw(AngleUnit.DEGREES);
+double pitch  = angles.getPitch(AngleUnit.DEGREES);
+double roll   = angles.getRoll(AngleUnit.DEGREES);
+```
+
+The `AngleUnit` parameter lets you choose between degrees and radians:
+
+- **`AngleUnit.DEGREES`** -- Values from -180 to +180. Easier for humans to think about.
+- **`AngleUnit.RADIANS`** -- Values from -pi to +pi. Preferred for mathematical calculations.
+
+For most FTC code, **degrees** are the practical choice.
+
+## Displaying IMU Data on Telemetry
+
+During development and competition, it is extremely helpful to display the IMU heading on telemetry:
+
+```java
+YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();
+double heading = angles.getYaw(AngleUnit.DEGREES);
+
+telemetry.addData("Heading", "%.1f degrees", heading);
+telemetry.addData("Pitch", "%.1f degrees", angles.getPitch(AngleUnit.DEGREES));
+telemetry.addData("Roll", "%.1f degrees", angles.getRoll(AngleUnit.DEGREES));
+telemetry.update();
+```
+
+This lets you pick up the robot, rotate it by hand, and watch the heading change in real time on the Driver Station. It is a great way to verify that your IMU is working and your mounting orientation is correct.
+
+## Resetting the Yaw
+
+Sometimes you want to reset the heading to zero -- for example, at the start of an autonomous routine. You can do this with:
+
+```java
+imu.resetYaw();
+```
+
+After this call, the current heading becomes 0 degrees, and all future readings are relative to this new reference point.
+
+## Your Exercise
+
+In this exercise, you will initialize the IMU and display the heading on telemetry. The simulated IMU has its yaw set to **45.0 degrees**.
+
+Your task:
+
+1. Get the IMU from the hardware map.
+2. Create `IMU.Parameters` with a `RevHubOrientationOnRobot` (logo UP, USB FORWARD).
+3. Call `imu.initialize(parameters)`.
+4. After `waitForStart()`, read the yaw/pitch/roll angles.
+5. Get the yaw in degrees and display it on telemetry with the caption `"Heading"`.
+6. Call `telemetry.update()`.
+
+Your telemetry output should contain both the word "Heading" and the value "45".
+
+Give it a try!

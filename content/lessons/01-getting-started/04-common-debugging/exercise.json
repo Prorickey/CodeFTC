@@ -1,0 +1,45 @@
+{
+  "title": "Common Debugging",
+  "className": "StudentCode",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Debug Exercise\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // BUG: This motor initialization is in the wrong place!\n        // It should happen BEFORE waitForStart()\n        DcMotor driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n        \n        // TODO: Fix the order so the motor is obtained before waitForStart()\n        // and the power is set after waitForStart()\n        driveMotor.setPower(1.0);\n        \n        telemetry.addData(\"Status\", \"Running\");\n        telemetry.addData(\"Motor Power\", driveMotor.getPower());\n        telemetry.update();\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Debug Exercise\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        driveMotor.setPower(1.0);\n        \n        telemetry.addData(\"Status\", \"Running\");\n        telemetry.addData(\"Motor Power\", driveMotor.getPower());\n        telemetry.update();\n    }\n}",
+  "hardwareConfig": {
+    "motors": {
+      "driveMotor": {
+        "type": "DcMotor"
+      }
+    }
+  },
+  "tests": [
+    {
+      "type": "method_call",
+      "name": "waitForStart() is called",
+      "method": "waitForStart",
+      "assertion": "called"
+    },
+    {
+      "type": "motor_power",
+      "name": "Motor 'driveMotor' is set to 1.0 power",
+      "device": "driveMotor",
+      "expected": 1.0
+    }
+  ],
+  "hints": [
+    {
+      "title": "What is the correct order?",
+      "content": "The correct order is: (1) Get hardware from hardwareMap, (2) call waitForStart(), (3) set motor power. Hardware initialization must always come before waitForStart()."
+    },
+    {
+      "title": "Where should hardwareMap.get() go?",
+      "content": "Move the `DcMotor driveMotor = hardwareMap.get(DcMotor.class, \"driveMotor\");` line to BEFORE `waitForStart()`. A good place is right at the top of runOpMode()."
+    },
+    {
+      "title": "Where should setPower() go?",
+      "content": "The `driveMotor.setPower(1.0);` call should remain AFTER `waitForStart()`. You want to control hardware only after the match starts."
+    },
+    {
+      "title": "The full solution pattern",
+      "content": "Rearrange so it reads: get motor -> telemetry init -> waitForStart() -> setPower -> telemetry running. This is the standard FTC OpMode pattern."
+    }
+  ]
+}

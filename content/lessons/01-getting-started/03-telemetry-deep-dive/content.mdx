@@ -1,0 +1,149 @@
+---
+title: "Telemetry Deep Dive"
+description: "Master telemetry output to display motor data, sensor readings, and debug information on the Driver Station."
+---
+
+# Telemetry Deep Dive
+
+You have already used `telemetry.addData()` to display simple messages. But in a real FTC match, telemetry is your **primary debugging tool** and your **dashboard** for understanding what your robot is doing in real time. In this lesson, you will learn how to use telemetry to its full potential.
+
+## Telemetry Recap
+
+As a quick refresher, telemetry works in two steps:
+
+```java
+telemetry.addData("Caption", value);  // Buffer a line
+telemetry.update();                    // Send everything to the Driver Station
+```
+
+The `update()` call is **required** in a `LinearOpMode`. Without it, nothing appears on the screen. This is a common source of confusion -- if your telemetry is not showing up, check that you are calling `update()`.
+
+## Different Value Types
+
+The `addData()` method is flexible. The second argument can be many different types:
+
+```java
+// Strings
+telemetry.addData("Status", "Running");
+
+// Integers
+telemetry.addData("Loop Count", 42);
+
+// Doubles
+telemetry.addData("Motor Power", 0.75);
+
+// Expressions
+telemetry.addData("Motor Power", motor.getPower());
+
+// Computed values
+telemetry.addData("Error", targetPosition - currentPosition);
+
+// String formatting
+telemetry.addData("Position", "X=%.2f Y=%.2f", xPos, yPos);
+```
+
+You can pass strings, numbers, method return values, and even arithmetic expressions directly as the value argument. Java will automatically convert numbers to strings for display.
+
+## Adding Blank Lines with addLine()
+
+Sometimes you want to visually separate groups of telemetry data. The `addLine()` method adds a line of text without a caption:
+
+```java
+telemetry.addData("--- MOTORS ---", "");
+telemetry.addData("Left Power", leftPower);
+telemetry.addData("Right Power", rightPower);
+telemetry.addLine();  // Blank line for spacing
+telemetry.addData("--- SENSORS ---", "");
+telemetry.addData("Distance", distanceCM);
+telemetry.update();
+```
+
+Using `addLine()` with no argument adds a blank line. You can also pass a string to `addLine("some text")` to add an unformatted line of text.
+
+## Building a Telemetry Dashboard
+
+In competition code, you will often build a dashboard that updates every loop iteration. Here is a typical pattern:
+
+```java
+@TeleOp(name = "Dashboard Demo")
+public class DashboardDemo extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        DcMotor leftMotor = hardwareMap.get(DcMotor.class, "leftMotor");
+        DcMotor rightMotor = hardwareMap.get(DcMotor.class, "rightMotor");
+
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        waitForStart();
+
+        int loopCount = 0;
+
+        while (opModeIsActive()) {
+            double leftPower = -gamepad1.left_stick_y;
+            double rightPower = -gamepad1.right_stick_y;
+
+            leftMotor.setPower(leftPower);
+            rightMotor.setPower(rightPower);
+
+            loopCount++;
+
+            // Build the dashboard
+            telemetry.addData("Status", "Running");
+            telemetry.addData("Loop Count", loopCount);
+            telemetry.addLine();
+            telemetry.addData("Left Power", leftPower);
+            telemetry.addData("Right Power", rightPower);
+            telemetry.addData("Left Encoder", leftMotor.getCurrentPosition());
+            telemetry.addData("Right Encoder", rightMotor.getCurrentPosition());
+            telemetry.update();
+        }
+    }
+}
+```
+
+Each time through the loop, the telemetry buffer is rebuilt from scratch and sent to the screen. This means every `update()` call replaces the previous display entirely -- you do not need to clear it manually.
+
+## Telemetry for Debugging
+
+Telemetry is indispensable when something is not working as expected. Here are common debugging patterns:
+
+**Verify hardware initialization:**
+```java
+DcMotor motor = hardwareMap.get(DcMotor.class, "myMotor");
+telemetry.addData("Motor", motor != null ? "Found" : "NULL");
+telemetry.update();
+```
+
+**Track variable values:**
+```java
+telemetry.addData("Gamepad Left Y", gamepad1.left_stick_y);
+telemetry.addData("Calculated Power", power);
+telemetry.addData("Motor Actual Power", motor.getPower());
+telemetry.update();
+```
+
+**Display state information:**
+```java
+telemetry.addData("State", currentState);
+telemetry.addData("Target", targetPosition);
+telemetry.addData("Error", error);
+telemetry.update();
+```
+
+When your robot behaves unexpectedly, the first thing you should do is add telemetry to display the values of every variable involved. Nine times out of ten, you will immediately see the problem.
+
+## Your Exercise
+
+Your task is to create a simple telemetry dashboard. You have a motor named `"testMotor"` and the gamepad's left stick Y is set to **-0.75** (pushed forward).
+
+Here is what you need to do:
+
+1. Get the motor from the hardware map.
+2. Call `waitForStart()`.
+3. Set the motor's power to the negated gamepad left stick Y value (so it becomes 0.75).
+4. Add telemetry data with caption `"Motor Power"` showing the motor's power value.
+5. Add telemetry data with caption `"Status"` and value `"Running"`.
+6. Call `telemetry.update()`.
+
+Give it a try!

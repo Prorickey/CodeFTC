@@ -1,0 +1,82 @@
+---
+title: "Hello OpMode"
+description: "Write your very first FTC program and learn how OpModes work."
+---
+
+# Hello OpMode
+
+Welcome to your first FTC programming lesson! Every FTC robot program starts in one place: an **OpMode**. By the end of this lesson, you will understand what an OpMode is, how it is structured, and you will write your very first one.
+
+## What is an OpMode?
+
+An OpMode (short for "Operational Mode") is the **entry point** for all FTC robot programs. Think of it like the `main()` function in a regular Java program -- it is where the Robot Controller looks to find out what your robot should do.
+
+Every time a driver selects your program on the Driver Station and presses **Init**, the Robot Controller creates an instance of your OpMode and starts running it.
+
+There are two types of OpModes in the FTC SDK:
+
+- **`OpMode`** -- Uses a callback-based structure with `init()`, `loop()`, `stop()` methods. Good for advanced use cases.
+- **`LinearOpMode`** -- Runs your code top-to-bottom in a single `runOpMode()` method. Much easier to read and reason about.
+
+Throughout these tutorials, we will use **`LinearOpMode`** because its sequential flow makes it the best choice for learning.
+
+## The Structure of a LinearOpMode
+
+Here is the skeleton of every LinearOpMode you will write:
+
+```java
+@TeleOp(name = "My OpMode")
+public class MyOpMode extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        // INITIALIZATION CODE
+        // Runs when the driver presses Init
+
+        waitForStart();
+
+        // RUNNING CODE
+        // Runs when the driver presses Play
+    }
+}
+```
+
+There are three key parts to understand:
+
+1. **`@TeleOp` annotation** -- This registers your OpMode so it appears on the Driver Station. You can also use `@Autonomous` for autonomous programs.
+2. **Initialization phase** -- Any code *before* `waitForStart()` runs as soon as the driver presses **Init**. Use this to set up hardware, display status info, and get ready.
+3. **Running phase** -- Code *after* `waitForStart()` runs once the driver presses **Play**. This is where your robot actually does things.
+
+The `waitForStart()` call is critical. It **pauses** your program and waits for the driver to press the Play button. Never forget it!
+
+## Telemetry: Talking to the Driver Station
+
+Your robot cannot talk, but it can display messages on the Driver Station screen using **telemetry**. This is invaluable for debugging and for giving drivers real-time information.
+
+Here is how telemetry works:
+
+```java
+telemetry.addData("Caption", "Value");
+telemetry.update();
+```
+
+- **`addData(caption, value)`** adds a line of data to the telemetry buffer. The caption is a label, and the value is what gets displayed next to it.
+- **`update()`** sends the buffered data to the Driver Station screen. Without calling `update()`, nothing will appear!
+
+You can add multiple lines before calling `update()`:
+
+```java
+telemetry.addData("Status", "Initialized");
+telemetry.addData("Team", "12345");
+telemetry.update();  // Both lines appear at once
+```
+
+## Your Exercise
+
+Time to write your first OpMode! Your task is to:
+
+1. **Before** `waitForStart()`: Display a telemetry message with caption `"Message"` and value `"Hello, FTC!"`, then call `telemetry.update()`.
+2. **After** `waitForStart()`: Display a telemetry message with caption `"Status"` and value `"Running"`, then call `telemetry.update()`.
+
+This simulates what happens on a real robot -- you see an initialization message while waiting, and a status change once the match begins.
+
+Give it a try in the editor below!

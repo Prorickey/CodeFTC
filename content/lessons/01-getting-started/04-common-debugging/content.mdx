@@ -1,0 +1,158 @@
+---
+title: "Common Debugging"
+description: "Learn to identify and fix the most common FTC programming mistakes before they cost you a match."
+---
+
+# Common Debugging
+
+Every FTC programmer, from rookie to veteran, encounters bugs. The difference between a team that thrives and one that struggles is not the absence of bugs -- it is the ability to find and fix them quickly. In this lesson, you will learn about the most common FTC programming mistakes and how to avoid them.
+
+## The #1 Error: NullPointerException
+
+If there is one error that haunts FTC programmers more than any other, it is the **NullPointerException** (NPE). You will see this when you try to use a variable that has not been properly initialized.
+
+The most common cause in FTC code:
+
+```java
+// BROKEN: motor is null because hardwareMap is not ready at field declaration time
+public class MyOpMode extends LinearOpMode {
+    DcMotor motor = hardwareMap.get(DcMotor.class, "myMotor"); // CRASH!
+
+    @Override
+    public void runOpMode() {
+        waitForStart();
+        motor.setPower(1.0);  // NullPointerException here
+    }
+}
+```
+
+The problem is that `hardwareMap` is **not available** when the class is first created. It only becomes available inside `runOpMode()`. If you try to use `hardwareMap` at field declaration time (outside of any method), you will get a NullPointerException.
+
+**The fix:** Always initialize hardware inside `runOpMode()`:
+
+```java
+// CORRECT: hardware initialized inside runOpMode()
+public class MyOpMode extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        DcMotor motor = hardwareMap.get(DcMotor.class, "myMotor"); // Works!
+
+        waitForStart();
+        motor.setPower(1.0);
+    }
+}
+```
+
+## Wrong Hardware Names
+
+Another extremely common error is a **mismatched hardware name**. The name you pass to `hardwareMap.get()` must match the name in your robot's hardware configuration exactly -- including capitalization.
+
+```java
+// Robot config has the motor named "driveMotor"
+DcMotor motor = hardwareMap.get(DcMotor.class, "DriveMotor");  // WRONG! Capital D
+DcMotor motor = hardwareMap.get(DcMotor.class, "drive_motor");  // WRONG! Underscore
+DcMotor motor = hardwareMap.get(DcMotor.class, "driveMotor");   // Correct!
+```
+
+When the name does not match, `hardwareMap.get()` throws an exception and your OpMode crashes immediately. The error message will tell you which device name was not found -- read it carefully.
+
+**Tip:** Copy-paste hardware names from your configuration rather than typing them from memory.
+
+## The Importance of waitForStart()
+
+The `waitForStart()` call separates your OpMode into two phases: initialization and running. Forgetting it -- or putting code in the wrong phase -- leads to subtle bugs.
+
+**Common mistake: Using hardware before it is initialized:**
+
+```java
+public void runOpMode() {
+    waitForStart();
+
+    // BUG: Motor is obtained AFTER waitForStart(), which works...
+    DcMotor motor = hardwareMap.get(DcMotor.class, "driveMotor");
+    motor.setPower(1.0);
+}
+```
+
+While this technically runs, it is **bad practice**. If the hardware name is wrong, you will not see the error until the match starts -- wasting precious match time. Always get hardware **before** `waitForStart()` so errors appear during the init phase when you can still fix them.
+
+**Worse mistake: Setting motor power before getting the motor:**
+
+```java
+public void runOpMode() {
+    motor.setPower(1.0);  // CRASH: motor is not initialized yet!
+
+    DcMotor motor = hardwareMap.get(DcMotor.class, "driveMotor");
+    waitForStart();
+}
+```
+
+This will crash immediately because you are trying to call a method on a variable that does not exist yet.
+
+## The Correct Pattern
+
+Here is the pattern you should follow in every OpMode:
+
+```java
+@TeleOp(name = "My OpMode")
+public class MyOpMode extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        // PHASE 1: Initialize hardware (before waitForStart)
+        DcMotor motor = hardwareMap.get(DcMotor.class, "driveMotor");
+
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        // PHASE 2: Wait for driver to press Play
+        waitForStart();
+
+        // PHASE 3: Run (after waitForStart)
+        motor.setPower(1.0);
+
+        telemetry.addData("Status", "Running");
+        telemetry.update();
+    }
+}
+```
+
+This is a **rock-solid** pattern:
+
+1. Get all hardware references first. If something is misconfigured, you see the error immediately.
+2. Display a status message so the drivers know the robot is ready.
+3. Wait for the Play button.
+4. Control hardware after the match starts.
+
+## Using Telemetry for Debugging
+
+When something goes wrong, telemetry is your best friend. Add telemetry calls at every step to track what is happening:
+
+```java
+DcMotor motor = hardwareMap.get(DcMotor.class, "driveMotor");
+telemetry.addData("Debug", "Motor obtained successfully");
+telemetry.update();
+
+waitForStart();
+
+telemetry.addData("Debug", "Match started, setting power");
+telemetry.update();
+
+motor.setPower(1.0);
+
+telemetry.addData("Debug", "Power set to " + motor.getPower());
+telemetry.update();
+```
+
+If the OpMode crashes, the last telemetry message that appeared tells you exactly where the crash happened.
+
+## Your Exercise
+
+The code in the editor has a **bug**. The motor initialization (`hardwareMap.get()`) is happening *after* `waitForStart()`, but the motor power is being set *before* the motor is obtained. This will crash.
+
+Your task is to **fix the order** so that:
+
+1. The motor is obtained from the hardware map **before** `waitForStart()`.
+2. `waitForStart()` is called.
+3. The motor power is set to `1.0` **after** `waitForStart()`.
+
+This is a debugging exercise -- you need to rearrange the code, not write it from scratch!

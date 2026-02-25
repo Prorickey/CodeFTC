@@ -1,0 +1,45 @@
+{
+  "title": "Servo Control",
+  "className": "StudentCode",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.Servo;\n\n@TeleOp(name = \"Servo Control\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        // TODO: Get a Servo from hardwareMap named \"testServo\"\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: If gamepad1.a is pressed, set servo position to 1.0\n        // TODO: If gamepad1.b is pressed, set servo position to 0.0\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.Servo;\n\n@TeleOp(name = \"Servo Control\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        Servo testServo = hardwareMap.get(Servo.class, \"testServo\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        if (gamepad1.a) {\n            testServo.setPosition(1.0);\n        }\n        if (gamepad1.b) {\n            testServo.setPosition(0.0);\n        }\n    }\n}",
+  "hardwareConfig": {
+    "servos": {
+      "testServo": {
+        "type": "Servo"
+      }
+    },
+    "gamepad": {
+      "a": true,
+      "b": false
+    }
+  },
+  "tests": [
+    {
+      "type": "method_call",
+      "name": "waitForStart() is called",
+      "method": "waitForStart",
+      "assertion": "called"
+    },
+    {
+      "type": "servo_position",
+      "name": "Servo 'testServo' is set to position 1.0 when A is pressed",
+      "device": "testServo",
+      "expected": 1.0
+    }
+  ],
+  "hints": [
+    {
+      "title": "How to get a servo from the hardware map",
+      "content": "Use `Servo myServo = hardwareMap.get(Servo.class, \"testServo\");` -- the pattern is the same as motors, just with `Servo.class` instead of `DcMotor.class`."
+    },
+    {
+      "title": "How to set servo position",
+      "content": "Call `myServo.setPosition(1.0);` to move to the maximum position, or `myServo.setPosition(0.0);` for the minimum. The value must be between 0.0 and 1.0."
+    },
+    {
+      "title": "Checking button presses",
+      "content": "Gamepad buttons are boolean fields. Use `if (gamepad1.a)` to check if the A button is currently pressed. No `== true` needed -- the field is already a boolean."
+    }
+  ]
+}

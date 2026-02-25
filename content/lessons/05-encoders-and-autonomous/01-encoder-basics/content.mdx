@@ -1,0 +1,111 @@
+---
+title: "Encoder Basics"
+description: "Learn what encoders are, how to read them, and how to convert encoder ticks to real-world distance."
+---
+
+# Encoder Basics
+
+So far, you have controlled motors by setting a power level and hoping for the best. But how does your robot know how far it has actually moved? The answer is **encoders** -- sensors built into FTC motors that measure exactly how much the motor shaft has rotated.
+
+## What is an Encoder?
+
+An encoder is a sensor attached to a motor that produces electrical pulses as the shaft rotates. By counting these pulses (called **ticks** or **counts**), you can determine exactly how far the motor has turned.
+
+Every FTC-legal motor has a built-in encoder. You do not need to attach any extra hardware -- the encoder signals travel through the same cable as the motor power.
+
+## Counts Per Revolution (CPR)
+
+Different motors produce different numbers of ticks per revolution. This value is called **Counts Per Revolution (CPR)** and varies by motor model:
+
+| Motor | CPR |
+|-------|-----|
+| goBILDA 5202 Series 312 RPM | 537.7 |
+| goBILDA 5202 Series 435 RPM | 384.5 |
+| REV HD Hex 40:1 | 1120 |
+| REV Core Hex | 288 |
+
+The CPR is critical because it is the conversion factor between "encoder ticks" and "real-world rotation." If you know the CPR, you can calculate exactly how many revolutions the motor has completed.
+
+## Reading the Encoder
+
+To read the current encoder position, use `getCurrentPosition()`:
+
+```java
+DcMotor motor = hardwareMap.get(DcMotor.class, "driveMotor");
+int position = motor.getCurrentPosition();
+```
+
+This returns the total number of ticks the encoder has counted since it was last reset. The value can be positive or negative depending on the direction of rotation.
+
+## Resetting the Encoder
+
+Before you start counting, you typically want to reset the encoder to zero. This is done by setting the run mode:
+
+```java
+motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+```
+
+The first line resets the encoder count to zero and stops the motor. The second line puts the motor back into a mode where you can drive it normally while the encoder continues to count.
+
+## Converting Ticks to Distance
+
+Knowing the tick count is useful, but what you really want to know is: **how far has the robot moved?** To calculate this, you need two pieces of information:
+
+1. **CPR** -- ticks per revolution of the motor
+2. **Wheel circumference** -- how far the robot moves in one wheel revolution
+
+The formulas are:
+
+```
+revolutions = ticks / CPR
+distance = revolutions * wheelCircumference
+wheelCircumference = pi * wheelDiameter
+```
+
+For example, with a goBILDA 312 RPM motor (537.7 CPR) and a 96mm diameter wheel:
+
+```
+wheelCircumference = pi * 0.096m = 0.3016m
+```
+
+If the encoder reads 537 ticks:
+
+```
+revolutions = 537 / 537.7 = 0.9987 (almost exactly one revolution)
+distance = 0.9987 * 0.3016m = 0.3012m (about 30 cm)
+```
+
+The robot has moved roughly 30 centimeters -- one full wheel rotation.
+
+## Displaying Encoder Data
+
+During development, always display encoder values on telemetry:
+
+```java
+int position = motor.getCurrentPosition();
+double revolutions = position / 537.7;
+double distance = revolutions * (Math.PI * 0.096);
+
+telemetry.addData("Position", position);
+telemetry.addData("Revolutions", "%.2f", revolutions);
+telemetry.addData("Distance (m)", "%.3f", distance);
+telemetry.update();
+```
+
+Watching the encoder value change in real time helps you understand how the numbers relate to physical movement. Try pushing the robot by hand and watching the ticks increase!
+
+## Your Exercise
+
+In this exercise, you will read an encoder value and display it on telemetry. The motor `"driveMotor"` has a simulated encoder position of **537** ticks.
+
+Your task:
+
+1. Get the motor from the hardware map.
+2. After `waitForStart()`, read the current encoder position using `getCurrentPosition()`.
+3. Display the position on telemetry with the caption `"Position"`.
+4. Call `telemetry.update()`.
+
+Your telemetry should contain both `"Position"` and `"537"`.
+
+Give it a try!

@@ -1,0 +1,52 @@
+{
+  "title": "Touch Sensor",
+  "className": "StudentCode",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.hardware.DigitalChannel;\n\n@TeleOp(name = \"Touch Sensor\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        // TODO: Get the DigitalChannel named \"limitSwitch\" from hardwareMap\n        // TODO: Set the digital channel mode to INPUT\n        \n        DcMotor liftMotor = hardwareMap.get(DcMotor.class, \"liftMotor\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: Read the limit switch state using getState()\n        //       Remember: getState() returns FALSE when pressed!\n        \n        // TODO: If the switch is pressed, set liftMotor power to 0.0\n        // TODO: If the switch is NOT pressed, set liftMotor power to 0.5\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.hardware.DigitalChannel;\n\n@TeleOp(name = \"Touch Sensor\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DigitalChannel limitSwitch = hardwareMap.get(DigitalChannel.class, \"limitSwitch\");\n        limitSwitch.setMode(DigitalChannel.Mode.INPUT);\n        \n        DcMotor liftMotor = hardwareMap.get(DcMotor.class, \"liftMotor\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        boolean isPressed = !limitSwitch.getState();\n        \n        if (isPressed) {\n            liftMotor.setPower(0.0);\n        } else {\n            liftMotor.setPower(0.5);\n        }\n    }\n}",
+  "hardwareConfig": {
+    "motors": {
+      "liftMotor": {
+        "type": "DcMotor"
+      }
+    },
+    "sensors": {
+      "limitSwitch": {
+        "type": "DigitalChannel",
+        "state": false
+      }
+    }
+  },
+  "tests": [
+    {
+      "type": "method_call",
+      "name": "waitForStart() is called",
+      "method": "waitForStart",
+      "assertion": "called"
+    },
+    {
+      "type": "motor_power",
+      "name": "Lift motor is stopped when limit switch is pressed (power = 0.0)",
+      "device": "liftMotor",
+      "expected": 0.0,
+      "tolerance": 0.01
+    }
+  ],
+  "hints": [
+    {
+      "title": "How to get a DigitalChannel from the hardware map",
+      "content": "Use `DigitalChannel limitSwitch = hardwareMap.get(DigitalChannel.class, \"limitSwitch\");` -- the same pattern as getting a motor, but with `DigitalChannel.class`."
+    },
+    {
+      "title": "Setting the mode to INPUT",
+      "content": "After getting the DigitalChannel, call `limitSwitch.setMode(DigitalChannel.Mode.INPUT);` to configure it for reading."
+    },
+    {
+      "title": "Understanding the inverted state",
+      "content": "`getState()` returns `false` when the switch is pressed and `true` when it is not pressed. You can use `boolean isPressed = !limitSwitch.getState();` to make the logic more intuitive."
+    },
+    {
+      "title": "Full solution structure",
+      "content": "Read the state, then use an if/else: `if (!limitSwitch.getState()) { liftMotor.setPower(0.0); } else { liftMotor.setPower(0.5); }`"
+    }
+  ]
+}

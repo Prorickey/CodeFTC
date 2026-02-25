@@ -1,0 +1,54 @@
+{
+  "title": "Telemetry Deep Dive",
+  "className": "StudentCode",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Telemetry Dashboard\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        // TODO: Get a DcMotor from hardwareMap named \"testMotor\"\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: Read gamepad1.left_stick_y and negate it\n        // TODO: Set the motor power to the negated value\n        \n        // TODO: Add telemetry data with caption \"Motor Power\" showing the power\n        // TODO: Add telemetry data with caption \"Status\" and value \"Running\"\n        // TODO: Call telemetry.update()\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Telemetry Dashboard\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor testMotor = hardwareMap.get(DcMotor.class, \"testMotor\");\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.update();\n        \n        waitForStart();\n        \n        double power = -gamepad1.left_stick_y;\n        testMotor.setPower(power);\n        \n        telemetry.addData(\"Motor Power\", power);\n        telemetry.addData(\"Status\", \"Running\");\n        telemetry.update();\n    }\n}",
+  "hardwareConfig": {
+    "motors": {
+      "testMotor": {
+        "type": "DcMotor"
+      }
+    },
+    "gamepad": {
+      "left_stick_y": -0.75
+    }
+  },
+  "tests": [
+    {
+      "type": "method_call",
+      "name": "waitForStart() is called",
+      "method": "waitForStart",
+      "assertion": "called"
+    },
+    {
+      "type": "motor_power",
+      "name": "Motor 'testMotor' is set to 0.75 power",
+      "device": "testMotor",
+      "expected": 0.75
+    },
+    {
+      "type": "telemetry_contains",
+      "name": "Telemetry shows 'Motor Power'",
+      "contains": "Motor Power"
+    },
+    {
+      "type": "telemetry_contains",
+      "name": "Telemetry shows 'Running'",
+      "contains": "Running"
+    }
+  ],
+  "hints": [
+    {
+      "title": "How to negate the gamepad Y value",
+      "content": "The gamepad returns -0.75 when pushed forward. Negate it with `double power = -gamepad1.left_stick_y;` to get 0.75 (positive = forward)."
+    },
+    {
+      "title": "How to display motor power in telemetry",
+      "content": "Use `telemetry.addData(\"Motor Power\", power);` where `power` is the variable holding the motor's power value. You can pass numbers directly as the second argument."
+    },
+    {
+      "title": "Don't forget telemetry.update()",
+      "content": "In a LinearOpMode, telemetry data is only sent to the Driver Station when you call `telemetry.update()`. Without it, nothing appears on screen."
+    }
+  ]
+}

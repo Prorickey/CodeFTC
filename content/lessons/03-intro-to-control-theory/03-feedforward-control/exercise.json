@@ -1,0 +1,47 @@
+{
+  "title": "Feedforward Control",
+  "className": "StudentCode",
+  "starterCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Feedforward Control\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor armMotor = hardwareMap.get(DcMotor.class, \"armMotor\");\n        \n        int targetPosition = 500;\n        double Kp = 0.001;\n        double kG = 0.1;  // Gravity feedforward constant\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.addData(\"Target\", targetPosition);\n        telemetry.update();\n        \n        waitForStart();\n        \n        // TODO: Get the current position from the motor encoder\n        \n        // TODO: Calculate the error (target - current position)\n        \n        // TODO: Calculate the P term (Kp * error)\n        \n        // TODO: Calculate total power by adding the P term and kG (gravity feedforward)\n        \n        // TODO: Set the motor power to the total power\n        \n        telemetry.addData(\"Target\", targetPosition);\n        telemetry.addData(\"Current\", \"your current position variable here\");\n        telemetry.addData(\"Error\", \"your error variable here\");\n        telemetry.addData(\"Power\", \"your power variable here\");\n        telemetry.update();\n    }\n}",
+  "solutionCode": "import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.eventloop.opmode.TeleOp;\nimport com.qualcomm.robotcore.hardware.DcMotor;\n\n@TeleOp(name = \"Feedforward Control\")\npublic class StudentCode extends LinearOpMode {\n    @Override\n    public void runOpMode() {\n        DcMotor armMotor = hardwareMap.get(DcMotor.class, \"armMotor\");\n        \n        int targetPosition = 500;\n        double Kp = 0.001;\n        double kG = 0.1;\n        \n        telemetry.addData(\"Status\", \"Initialized\");\n        telemetry.addData(\"Target\", targetPosition);\n        telemetry.update();\n        \n        waitForStart();\n        \n        int currentPosition = armMotor.getCurrentPosition();\n        \n        double error = targetPosition - currentPosition;\n        \n        double pTerm = Kp * error;\n        \n        double totalPower = pTerm + kG;\n        \n        armMotor.setPower(totalPower);\n        \n        telemetry.addData(\"Target\", targetPosition);\n        telemetry.addData(\"Current\", currentPosition);\n        telemetry.addData(\"Error\", error);\n        telemetry.addData(\"Power\", totalPower);\n        telemetry.update();\n    }\n}",
+  "hardwareConfig": {
+    "motors": {
+      "armMotor": {
+        "type": "DcMotor",
+        "currentPosition": 200
+      }
+    }
+  },
+  "tests": [
+    {
+      "type": "method_call",
+      "name": "waitForStart() is called",
+      "method": "waitForStart",
+      "assertion": "called"
+    },
+    {
+      "type": "motor_power",
+      "name": "Motor power is approximately 0.4 (P term 0.3 + gravity 0.1)",
+      "device": "armMotor",
+      "expected": 0.4,
+      "tolerance": 0.05
+    }
+  ],
+  "hints": [
+    {
+      "title": "How to read the encoder position",
+      "content": "Use `int currentPosition = armMotor.getCurrentPosition();` to read the encoder. In this simulation, it returns 200."
+    },
+    {
+      "title": "How to calculate the P term",
+      "content": "First calculate error: `double error = targetPosition - currentPosition;` (500 - 200 = 300). Then the P term: `double pTerm = Kp * error;` (0.001 * 300 = 0.3)."
+    },
+    {
+      "title": "How to add feedforward",
+      "content": "Simply add the gravity constant to the PID output: `double totalPower = pTerm + kG;` This gives 0.3 + 0.1 = 0.4."
+    },
+    {
+      "title": "Why add kG?",
+      "content": "The kG constant represents the power needed to hold the arm against gravity. Without it, the arm would sag. The P controller handles getting to the target, while kG handles fighting gravity."
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+---
+title: "Servo Control"
+description: "Learn how servos differ from motors and control them with gamepad buttons."
+---
+
+# Servo Control
+
+Motors are great for wheels and lifts, but many robot mechanisms need something different: a device that moves to a specific **position** and holds it there. That is exactly what a servo does. In this lesson, you will learn how servos work and how to control them with gamepad buttons.
+
+## Servos vs. Motors
+
+Motors and servos are both actuators, but they work very differently:
+
+| | DC Motor | Servo |
+|---|---|---|
+| **Control** | `setPower(-1.0 to 1.0)` | `setPosition(0.0 to 1.0)` |
+| **What you set** | Speed and direction | Target position |
+| **Range of motion** | Continuous rotation | Limited range (typically ~180 degrees) |
+| **Use cases** | Wheels, lifts, intakes | Claws, latches, arm pivots |
+
+The key difference is that a motor spins freely at whatever power you set, while a servo **moves to a position** and holds it. When you call `servo.setPosition(0.5)`, the servo rotates to its midpoint and stays there, actively resisting any force that tries to move it.
+
+## Using Servos in Code
+
+Servos follow the same hardware map pattern as motors:
+
+```java
+import com.qualcomm.robotcore.hardware.Servo;
+
+Servo myServo = hardwareMap.get(Servo.class, "myServo");
+```
+
+Then, to move the servo:
+
+```java
+myServo.setPosition(1.0);  // Move to maximum position
+myServo.setPosition(0.0);  // Move to minimum position
+myServo.setPosition(0.5);  // Move to midpoint
+```
+
+The position value is a `double` between **0.0** and **1.0**:
+
+- **0.0** = one end of the servo's range (e.g., claw fully open)
+- **1.0** = the other end of the servo's range (e.g., claw fully closed)
+- **0.5** = midpoint
+
+What 0.0 and 1.0 physically mean on your robot depends on how the servo is mounted. You will often experiment to find the right values for your mechanism.
+
+## Controlling Servos with Buttons
+
+Joysticks are great for proportional control (like drive motors), but servos often have discrete states: open/closed, up/down, extended/retracted. Gamepad buttons are perfect for this.
+
+Here is a common pattern:
+
+```java
+while (opModeIsActive()) {
+    if (gamepad1.a) {
+        clawServo.setPosition(1.0);  // Close the claw
+    } else if (gamepad1.b) {
+        clawServo.setPosition(0.0);  // Open the claw
+    }
+}
+```
+
+When the driver presses **A**, the claw closes. When they press **B**, the claw opens. If neither button is pressed, the servo holds its last commanded position.
+
+## A Note About Servo Timing
+
+Servos do not move instantly. When you call `setPosition()`, the servo begins moving toward that position, but it takes time to get there (typically a few hundred milliseconds). The FTC SDK handles this automatically -- you just set the target and the servo does the rest.
+
+This means you do not need to worry about waiting for the servo to finish moving before doing other things. The servo moves in the background while your code continues.
+
+## Your Exercise
+
+You have a servo named `"testServo"`. The simulated gamepad has the **A button pressed** (`gamepad1.a` is `true`).
+
+Your task:
+
+1. Get the servo from the hardware map.
+2. After `waitForStart()`, check if `gamepad1.a` is pressed. If so, set the servo position to **1.0**.
+3. Also check if `gamepad1.b` is pressed. If so, set the servo position to **0.0**.
+
+Since the A button is pressed in this simulation, the servo should end up at position **1.0**.
+
+Give it a try!

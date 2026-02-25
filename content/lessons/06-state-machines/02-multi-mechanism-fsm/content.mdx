@@ -1,0 +1,162 @@
+---
+title: "Multi-Mechanism FSM"
+description: "Run multiple state machines in parallel so every mechanism on your robot can operate independently."
+---
+
+# Multi-Mechanism FSM
+
+In the previous lesson, you built a state machine for a single mechanism. But a competition robot has many mechanisms -- a drivetrain, a lift, a claw, an intake, maybe a launcher. Each one needs to run independently, without blocking the others. The solution is to run **multiple state machines in parallel** within the same loop.
+
+## The Problem with One Giant FSM
+
+You might think you could create a single state machine with states like `DRIVE_TO_BASKET`, `RAISE_LIFT`, `OPEN_CLAW`, `LOWER_LIFT`, and so on. But this approach falls apart quickly:
+
+- The number of states **explodes** as you add mechanisms. With 3 mechanisms each having 3 states, a combined FSM would need up to 27 states.
+- Mechanisms that should run simultaneously get **serialized** -- the lift waits for the drivetrain, the claw waits for the lift.
+- Adding or modifying one mechanism forces you to rethink the entire state machine.
+
+## Parallel State Machines
+
+The better approach is to give each mechanism **its own state machine**. Each mechanism has its own enum, its own state variable, and its own switch block. They all run inside the same `while(opModeIsActive())` loop, one after another, every single iteration:
+
+```java
+while (opModeIsActive()) {
+    // Lift FSM runs
+    switch (liftState) {
+        case IDLE: ... break;
+        case RAISING: ... break;
+        case HOLDING: ... break;
+    }
+
+    // Claw FSM runs
+    switch (clawState) {
+        case CLOSED: ... break;
+        case OPEN: ... break;
+    }
+
+    // Drivetrain runs (no FSM needed -- just direct control)
+    double drive = -gamepad1.left_stick_y;
+    leftMotor.setPower(drive);
+    rightMotor.setPower(drive);
+}
+```
+
+Each mechanism executes its logic every loop iteration. None of them block each other. The lift can be raising while the claw is opening while the driver is steering -- all at the same time.
+
+## Separate Enums for Each Mechanism
+
+Define a distinct enum for each mechanism:
+
+```java
+enum LiftState {
+    IDLE,
+    RAISING,
+    HOLDING,
+    LOWERING
+}
+
+enum ClawState {
+    CLOSED,
+    OPEN
+}
+
+enum IntakeState {
+    OFF,
+    INTAKING,
+    REVERSING
+}
+```
+
+And declare a state variable for each:
+
+```java
+LiftState liftState = LiftState.IDLE;
+ClawState clawState = ClawState.CLOSED;
+IntakeState intakeState = IntakeState.OFF;
+```
+
+## Coordinating Between Mechanisms
+
+Sometimes one mechanism needs to respond to another mechanism's state. For example, you might want the claw to open automatically when the lift reaches its target height. Since all state variables are accessible in the same loop, this is straightforward:
+
+```java
+// In the claw FSM
+switch (clawState) {
+    case CLOSED:
+        clawServo.setPosition(0.0);
+        // Open the claw when the lift reaches HOLDING
+        if (liftState == LiftState.HOLDING) {
+            clawState = ClawState.OPEN;
+        }
+        break;
+    case OPEN:
+        clawServo.setPosition(1.0);
+        break;
+}
+```
+
+This is a key advantage of parallel FSMs in the same loop -- they can read each other's states to coordinate complex sequences without blocking.
+
+## Timer-Based Transitions with ElapsedTime
+
+Some transitions depend on time rather than sensor readings or buttons. The `ElapsedTime` class from the FTC SDK is perfect for this:
+
+```java
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+ElapsedTime timer = new ElapsedTime();
+
+// When entering a timed state, reset the timer:
+case RAISING:
+    liftMotor.setPower(1.0);
+    if (timer.seconds() > 2.0) {
+        liftState = LiftState.HOLDING;
+    }
+    break;
+```
+
+A common pattern is to reset the timer during the transition into a state:
+
+```java
+case IDLE:
+    liftMotor.setPower(0.0);
+    if (gamepad1.a) {
+        liftState = LiftState.RAISING;
+        timer.reset();  // Start timing from now
+    }
+    break;
+```
+
+## Pattern: Separate Update Methods
+
+As your FSMs grow, it is cleaner to move each mechanism's logic into its own method:
+
+```java
+while (opModeIsActive()) {
+    updateLift();
+    updateClaw();
+    updateDrivetrain();
+    updateTelemetry();
+}
+
+private void updateLift() {
+    switch (liftState) {
+        case IDLE: ... break;
+        case RAISING: ... break;
+        case HOLDING: ... break;
+    }
+}
+
+private void updateClaw() {
+    switch (clawState) {
+        case CLOSED: ... break;
+        case OPEN: ... break;
+    }
+}
+```
+
+This keeps your main loop clean and makes each mechanism easy to test and modify independently.
+
+## Your Exercise
+
+Time to run two mechanisms in parallel! You will build a system where pressing `gamepad1.a` causes both the lift motor and the claw servo to activate simultaneously. The lift should go to full power and the claw should open (position 1.0). This demonstrates the fundamental principle: multiple mechanisms responding in the same loop iteration without blocking each other.
