@@ -33,7 +33,7 @@ export async function runInSandbox(workDir: string): Promise<string> {
       CpuPeriod: CPU_PERIOD,
       PidsLimit: PIDS_LIMIT,
       ReadonlyRootfs: false,
-      AutoRemove: true,
+      AutoRemove: false,
     },
     User: "sandbox",
   })
@@ -47,11 +47,8 @@ export async function runInSandbox(workDir: string): Promise<string> {
     ])
 
     if (result === "TIMEOUT") {
-      try {
-        await container.kill()
-      } catch {
-        // Container may already be stopped
-      }
+      try { await container.kill() } catch { /* already stopped */ }
+      try { await container.remove({ force: true }) } catch { /* ignore */ }
       return JSON.stringify({
         success: false,
         runtimeError: "Execution timed out (15 second limit)",
@@ -62,11 +59,8 @@ export async function runInSandbox(workDir: string): Promise<string> {
 
     return result as string
   } catch (err) {
-    try {
-      await container.kill()
-    } catch {
-      // Container may already be stopped
-    }
+    try { await container.kill() } catch { /* already stopped */ }
+    try { await container.remove({ force: true }) } catch { /* ignore */ }
     throw err
   }
 }
@@ -79,6 +73,9 @@ async function waitForContainer(container: Docker.Container): Promise<string> {
     stderr: true,
     follow: false,
   })
+
+  // Remove container now that we have the logs
+  try { await container.remove() } catch { /* ignore */ }
 
   return stripDockerHeaders(logs.toString())
 }

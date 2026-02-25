@@ -1,0 +1,9 @@
+.next
+node_modules
+.git
+.env*.local
+.env
+*.md
+!README.md
+.tmp-exec
+docker/java-sandbox

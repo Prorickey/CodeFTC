@@ -11,5 +11,26 @@ services:
     volumes:
       - codeftc_postgres_data:/var/lib/postgresql/data
 
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: codeftc-nextjs
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    environment:
+      EXEC_TMP_DIR: /tmp/codeftc-exec
+    volumes:
+      # Docker-out-of-Docker: give the container access to the host Docker daemon
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Shared exec temp dir — MUST be the same path on host and in container
+      # so the host Docker daemon can bind-mount it into sandbox containers
+      - /tmp/codeftc-exec:/tmp/codeftc-exec
+    depends_on:
+      postgres:
+        condition: service_started
+
 volumes:
   codeftc_postgres_data:

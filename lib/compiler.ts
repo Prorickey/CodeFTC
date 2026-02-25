@@ -24,7 +24,7 @@ export async function executeCode(
     }
   }
 
-  const tmpBase = join(process.cwd(), ".tmp-exec")
+  const tmpBase = process.env.EXEC_TMP_DIR ?? join(process.cwd(), ".tmp-exec")
   await mkdir(tmpBase, { recursive: true })
   const workDir = await mkdtemp(join(tmpBase, "run-"))
 
