@@ -1,6 +1,18 @@
 "use client"
 
 import { useMemo } from "react"
+import hljs from "highlight.js/lib/core"
+import java from "highlight.js/lib/languages/java"
+import xml from "highlight.js/lib/languages/xml"
+import bash from "highlight.js/lib/languages/bash"
+import plaintext from "highlight.js/lib/languages/plaintext"
+import "highlight.js/styles/vs2015.css"
+
+hljs.registerLanguage("java", java)
+hljs.registerLanguage("xml", xml)
+hljs.registerLanguage("bash", bash)
+hljs.registerLanguage("plaintext", plaintext)
+hljs.registerLanguage("text", plaintext)
 
 interface LessonContentProps {
   content: string
@@ -23,11 +35,19 @@ export function LessonContent({ content }: LessonContentProps) {
 function renderMarkdown(md: string): string {
   let html = md
 
-  // Code blocks (fenced)
+  // Extract code blocks first to protect them from paragraph processing
+  const codeBlocks: string[] = []
   html = html.replace(
     /```(\w*)\n([\s\S]*?)```/g,
     (_match, lang: string, code: string) => {
-      return `<pre><code class="language-${lang}">${escapeHtml(code.trim())}</code></pre>`
+      const trimmed = code.trim()
+      const language = lang || "plaintext"
+      const highlighted = hljs.getLanguage(language)
+        ? hljs.highlight(trimmed, { language }).value
+        : escapeHtml(trimmed)
+      const block = `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`
+      codeBlocks.push(block)
+      return `\x00CODE_BLOCK_${codeBlocks.length - 1}\x00`
     }
   )
 
@@ -134,6 +154,7 @@ function renderMarkdown(md: string): string {
       const trimmed = block.trim()
       if (!trimmed) return ""
       if (
+        trimmed.startsWith("\x00CODE_BLOCK_") ||
         trimmed.startsWith("<h") ||
         trimmed.startsWith("<pre") ||
         trimmed.startsWith("<ul") ||
@@ -147,6 +168,9 @@ function renderMarkdown(md: string): string {
       return `<p>${trimmed.replace(/\n/g, "<br>")}</p>`
     })
     .join("\n")
+
+  // Restore code blocks
+  html = html.replace(/\x00CODE_BLOCK_(\d+)\x00/g, (_match, i) => codeBlocks[Number(i)])
 
   return html
 }
