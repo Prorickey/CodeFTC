@@ -1,0 +1,241 @@
+---
+title: "Dead Wheel Odometry"
+description: "Learn how dead wheel encoders give your robot precise position tracking, and compare every common localization option in FTC."
+---
+
+# Dead Wheel Odometry
+
+In the previous lesson you learned to read a motor's built-in encoder. That works for arm positioning, but using drive-motor encoders to track where your robot is on the field has serious limitations. **Dead wheel odometry** solves most of those problems by using dedicated tracking wheels that do nothing but measure movement.
+
+## What Is a Dead Wheel?
+
+A dead wheel (also called a **tracking wheel** or **odometry wheel**) is a small unpowered wheel that rolls freely against the floor. It is connected directly to an encoder but never to a motor. Because it has no motor fighting against it, it rolls with almost no slip and measures the floor's movement faithfully.
+
+Dead wheels typically use small omni-wheels (typically 35–48 mm diameter) and plug their encoder cables into unused encoder ports on the Control Hub or Expansion Hub.
+
+You read a dead wheel exactly like a motor encoder:
+
+```java
+// Dead wheels are wired to motor encoder ports and read as DcMotor objects
+DcMotor forwardEncoder = hardwareMap.get(DcMotor.class, "forwardEncoder");
+DcMotor strafeEncoder  = hardwareMap.get(DcMotor.class, "strafeEncoder");
+
+int forwardTicks = forwardEncoder.getCurrentPosition();
+int strafeTicks  = strafeEncoder.getCurrentPosition();
+```
+
+The power line of these "motors" goes unused — only the encoder signal matters.
+
+## Converting Ticks to Distance
+
+The same formula from Encoder Basics applies:
+
+```java
+static final double TICKS_PER_REV  = 2000.0; // e.g. REV Through Bore Encoder
+static final double WHEEL_DIAMETER = 0.048;   // 48 mm in meters
+static final double WHEEL_CIRCUM   = Math.PI * WHEEL_DIAMETER;
+
+double forwardDist = (forwardTicks / TICKS_PER_REV) * WHEEL_CIRCUM;
+double strafeDist  = (strafeTicks  / TICKS_PER_REV) * WHEEL_CIRCUM;
+```
+
+## Simple 2D Position Tracking
+
+With two perpendicular dead wheels you can integrate position over time:
+
+```java
+double x = 0, y = 0;
+int prevForward = 0, prevStrafe = 0;
+
+while (opModeIsActive()) {
+    int curForward = forwardEncoder.getCurrentPosition();
+    int curStrafe  = strafeEncoder.getCurrentPosition();
+
+    double dForward = (curForward - prevForward) / TICKS_PER_REV * WHEEL_CIRCUM;
+    double dStrafe  = (curStrafe  - prevStrafe)  / TICKS_PER_REV * WHEEL_CIRCUM;
+
+    y += dForward;  // assuming forward encoder measures Y axis
+    x += dStrafe;   // assuming strafe encoder measures X axis
+
+    prevForward = curForward;
+    prevStrafe  = curStrafe;
+
+    telemetry.addData("X (m)", "%.3f", x);
+    telemetry.addData("Y (m)", "%.3f", y);
+    telemetry.update();
+}
+```
+
+This ignores heading changes — for full field-relative tracking you also need an IMU or a third encoder to measure rotation. But even this simplified version is far more accurate than motor encoders alone on a mecanum robot.
+
+---
+
+## Localization Option Comparison
+
+There are five common ways to track your robot's position in FTC. Here is how they compare:
+
+### 1. Drive Motor Encoders Only
+
+Use the built-in encoders on your drive motors directly.
+
+**How it works:** Average the left and right encoder readings for forward distance; subtract them for heading. Works well for tank/differential drive. On mecanum drives you need all four wheels.
+
+**Pros:**
+- Zero extra hardware or cost
+- Already covered in the previous lesson
+
+**Cons:**
+- Wheel slip under acceleration, turning, and defense causes significant drift
+- Mecanum wheels slip sideways, making Y-axis tracking unreliable
+- Motor gearboxes have backlash that adds error over time
+- Poor for anything needing sub-field-width accuracy on mecanum
+
+**Best for:** Simple tank-drive autonomous, or when budget is the top constraint.
+
+---
+
+### 2. Two Dead Wheels (2-Wheel Odometry)
+
+Two tracking wheels: one pointing forward (measures Y) and one pointing sideways (measures X strafe).
+
+**How it works:** The forward wheel tracks straight-line distance; the strafe wheel tracks lateral movement. Heading still comes from the IMU.
+
+**Pros:**
+- Eliminates drive-wheel slip entirely
+- Captures mecanum sideways motion that motor encoders miss
+- Low cost (~$15–30 for encoders + wheels)
+- Simple to implement
+
+**Cons:**
+- Heading accuracy still depends on the IMU, which drifts over a 2-minute match
+- Requires careful pod mounting to keep constant floor contact
+- No redundancy — if one pod lifts, tracking fails
+
+**Best for:** Budget-conscious teams wanting reliable mecanum odometry without full three-wheel complexity.
+
+---
+
+### 3. Three Dead Wheels (3-Wheel Odometry)
+
+Three tracking wheels: two parallel pods (left and right) for forward motion and heading, plus one perpendicular pod for strafe.
+
+**How it works:** The difference between the two parallel wheels gives you heading without the IMU. All three together give you X, Y, and θ (heading) purely from wheel math.
+
+**Pros:**
+- Heading is derived entirely from encoders, not the IMU — eliminates gyro drift
+- Full 2D pose (x, y, heading) from encoders alone
+- Very accurate over a full 2-minute match
+- Used by the majority of high-performing FTC teams
+
+**Cons:**
+- More complex mounting — three pods must all maintain floor contact
+- Slightly more code to fuse the three readings into a pose
+- Adds ~$30–50 cost for a third encoder and pod
+
+**Best for:** Teams wanting the most accurate pure-encoder localization available. The industry standard for high-level FTC.
+
+---
+
+### 4. goBILDA Pinpoint Odometry Computer
+
+The [goBILDA Pinpoint](https://www.gobilda.com/pinpoint-odometry-computer/) is a dedicated I2C board that accepts two encoder cables and handles all the odometry math internally.
+
+**How it works:** You mount the Pinpoint on your robot with one encoder forward and one strafe (exactly like 2-wheel odometry), then communicate via I2C. The Pinpoint returns a ready-to-use X/Y/heading pose at up to 250 Hz. It has a built-in IMU that it fuses with the two encoders automatically.
+
+```java
+// Pinpoint is accessed via its own SDK driver
+GoBildaPinpointDriver odometry = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
+odometry.resetPosAndIMU();
+
+// In your loop:
+odometry.update();
+double x       = odometry.getPosX();   // meters
+double y       = odometry.getPosY();   // meters
+double heading = odometry.getHeading(); // radians
+```
+
+**Pros:**
+- Plug-and-play: no manual odometry math required
+- Onboard IMU fusion gives better heading than 2-wheel alone
+- Clean API — one call gives a full pose
+- Physically compact (~35 g)
+- Costs ~$35
+
+**Cons:**
+- Only two encoder inputs (still IMU-dependent for heading, unlike 3-wheel)
+- Requires goBILDA-specific SDK driver classes
+- Adds an I2C device to your hub (limited I2C ports)
+
+**Best for:** Teams who want reliable odometry without writing their own math, and are comfortable with a proprietary driver.
+
+---
+
+### 5. SparkFun OTOS (Optical Tracking Odometry Sensor)
+
+The [SparkFun OTOS](https://www.sparkfun.com/products/24904) uses an **optical flow sensor** — the same technology as a computer mouse — to track movement directly from the floor surface, with no wheels at all.
+
+**How it works:** A small camera and laser look straight down at the floor ~10 mm away. The optical sensor detects pixel movement between frames and integrates it into an X/Y/heading pose. An onboard IMU assists with heading. Communicates via I2C.
+
+```java
+SparkFunOTOS otos = hardwareMap.get(SparkFunOTOS.class, "sensor_otos");
+otos.calibrateImu();
+otos.resetTracking();
+
+// In your loop:
+SparkFunOTOS.Pose2D pos = otos.getPosition();
+double x       = pos.x;   // inches by default
+double y       = pos.y;
+double heading = pos.h;   // degrees
+```
+
+**Pros:**
+- No wheels to slip, lift off the floor, or maintain contact
+- Nothing mechanical — extremely durable
+- Clean pose API identical to Pinpoint
+- Works on any flooring (field tiles, carpet, smooth concrete)
+- Costs ~$55
+
+**Cons:**
+- Optical flow can fail on very shiny or featureless surfaces
+- Less proven at the highest FTC competition levels than 3-wheel odometry
+- Floor height must be consistent (~8–12 mm from sensor to floor)
+- Heading still has some IMU drift, though better than most
+
+**Best for:** Teams who want zero-slip localization without mechanical encoder pods, or whose robot design makes mounting dead wheel pods difficult.
+
+---
+
+## Comparison Summary
+
+| Method | Cost | Accuracy | Heading Source | Complexity |
+|---|---|---|---|---|
+| Drive motor encoders | Free | Low–Medium | IMU | Low |
+| 2-wheel dead wheels | ~$20–30 | Medium–High | IMU | Low–Medium |
+| 3-wheel dead wheels | ~$40–60 | High | Encoders (no IMU) | Medium |
+| goBILDA Pinpoint | ~$35 | Medium–High | IMU + encoder fusion | Low |
+| SparkFun OTOS | ~$55 | Medium–High | IMU + optical | Low |
+
+**Recommendation for most teams:** Start with 3-wheel dead wheels if you have the budget and want the best accuracy for autonomous. Use Pinpoint or OTOS if you want a simpler plug-and-play solution. Use motor encoders only for very simple autos or tank-drive robots.
+
+---
+
+## Your Exercise
+
+In this exercise you will read two dead wheel encoder values and compute the estimated forward and strafe distances traveled.
+
+Two dead wheels are registered in the hardware map as `"forwardEncoder"` and `"strafeEncoder"`. The forward encoder reads **2000 ticks** and the strafe encoder reads **500 ticks**.
+
+Use these constants:
+```java
+static final double TICKS_PER_REV = 2000.0;
+static final double WHEEL_DIAMETER = 0.048; // meters
+```
+
+Your task:
+1. Get both encoders from `hardwareMap`.
+2. After `waitForStart()`, read both tick counts.
+3. Compute `forwardDist` and `strafeDist` in meters using the constants above.
+4. Display both on telemetry with captions `"Forward (m)"` and `"Strafe (m)"`, using `"%.4f"` format.
+5. Call `telemetry.update()`.
+
+The forward distance should be approximately **0.1508 m** (one full revolution × 48 mm circumference) and the strafe distance should be approximately **0.0377 m**.

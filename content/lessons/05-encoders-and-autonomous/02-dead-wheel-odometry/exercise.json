@@ -1,0 +1,22 @@
+{
+  "title": "Dead Wheel Odometry",
+  "testCount": 4,
+  "hints": [
+    {
+      "title": "Reading dead wheel encoders",
+      "content": "Dead wheels are wired to encoder ports and read like regular motors: `DcMotor forwardEncoder = hardwareMap.get(DcMotor.class, \"forwardEncoder\");` then `int ticks = forwardEncoder.getCurrentPosition();`."
+    },
+    {
+      "title": "Computing distance from ticks",
+      "content": "Use: `double dist = (ticks / TICKS_PER_REV) * (Math.PI * WHEEL_DIAMETER);`. With TICKS_PER_REV=2000 and WHEEL_DIAMETER=0.048: 2000 ticks = 1 revolution = π × 0.048 ≈ 0.1508 m."
+    },
+    {
+      "title": "Displaying the results",
+      "content": "Use `telemetry.addData(\"Forward (m)\", \"%.4f\", forwardDist)` and `telemetry.addData(\"Strafe (m)\", \"%.4f\", strafeDist)`, then `telemetry.update()`."
+    },
+    {
+      "title": "Expected values",
+      "content": "Forward: 2000 / 2000 × (π × 0.048) ≈ 0.1508 m. Strafe: 500 / 2000 × (π × 0.048) ≈ 0.0377 m. The test checks within 0.001 m tolerance."
+    }
+  ]
+}
