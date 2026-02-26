@@ -40,6 +40,9 @@ next-env.d.ts
 /tmp-exec-*
 /.tmp-exec/
 
+# FTC project template (download with: bun run setup:ftc-template)
+/ftc-template/
+
 # IDE
 .idea
 .vscode
