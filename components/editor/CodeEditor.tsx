@@ -293,6 +293,7 @@ interface CodeEditorProps {
   onChange: (value: string) => void
   language?: string
   readOnly?: boolean
+  enableFtcCompletions?: boolean
 }
 
 export function CodeEditor({
@@ -300,9 +301,10 @@ export function CodeEditor({
   onChange,
   language = "java",
   readOnly = false,
+  enableFtcCompletions = false,
 }: CodeEditorProps) {
   const handleMount: OnMount = (_editor, monaco) => {
-    registerFtcProvider(monaco)
+    if (enableFtcCompletions) registerFtcProvider(monaco)
   }
 
   return (
