@@ -276,6 +276,7 @@ export function LessonPage({
                   showingSolution={showingSolution}
                   isRunning={isRunning}
                   isAuthenticated={isAuthenticated}
+                  code={code}
                 />
                 <div className="relative flex-1 overflow-hidden">
                   <div className={`absolute inset-0 ${showingSolution ? "invisible pointer-events-none" : ""}`}>

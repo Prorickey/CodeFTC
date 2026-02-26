@@ -3,6 +3,7 @@
 import { Play, RotateCcw, Eye, EyeOff, LogIn, PanelRightClose } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { DownloadButton } from "./DownloadButton"
 
 interface EditorToolbarProps {
   onRun: () => void
@@ -12,6 +13,7 @@ interface EditorToolbarProps {
   showingSolution: boolean
   isRunning: boolean
   isAuthenticated: boolean
+  code: string
 }
 
 export function EditorToolbar({
@@ -22,6 +24,7 @@ export function EditorToolbar({
   showingSolution,
   isRunning,
   isAuthenticated,
+  code,
 }: EditorToolbarProps) {
   const pathname = usePathname()
 
@@ -64,6 +67,8 @@ export function EditorToolbar({
       )}
 
       <div className="flex-1" />
+
+      <DownloadButton code={code} />
 
       <button
         onClick={onToggleSolution}
