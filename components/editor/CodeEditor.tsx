@@ -51,7 +51,7 @@ export function CodeEditor({
         }}
       />
       {readOnly && (
-        <div className="pointer-events-none absolute right-3 top-3 rounded border border-(--color-warning)/40 bg-[var(--color-warning)]/10 px-2 py-0.5 text-xs text-[var(--color-warning)]">
+        <div className="pointer-events-none absolute right-3 top-3 rounded border border-(--color-warning)/40 bg-(--color-warning)/10 px-2 py-0.5 text-xs text-(--color-warning)">
           Solution — read only
         </div>
       )}

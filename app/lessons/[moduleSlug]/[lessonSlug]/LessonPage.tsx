@@ -225,7 +225,7 @@ export function LessonPage({
           <button
             onClick={() => setSidebarCollapsed(false)}
             title="Expand sidebar"
-            className="hidden lg:flex absolute left-2 top-2 z-10 items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+            className="hidden lg:flex absolute left-2 top-2 z-10 items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-2 py-1.5 text-xs text-(--color-text-muted) transition-colors hover:bg-(--color-surface-hover) hover:text-(--color-text)"
           >
             <PanelLeftOpen className="h-4 w-4" />
           </button>
@@ -246,7 +246,7 @@ export function LessonPage({
             <button
               onClick={() => setEditorCollapsed(false)}
               title="Expand editor"
-              className="absolute right-4 top-2 z-10 flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+              className="absolute right-4 top-2 z-10 flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-2 py-1.5 text-xs text-(--color-text-muted) transition-colors hover:bg-(--color-surface-hover) hover:text-(--color-text)"
             >
               <PanelRightOpen className="h-4 w-4" />
             </button>
@@ -285,7 +285,7 @@ export function LessonPage({
                     <CodeEditor value={data.exercise.solutionCode} onChange={() => {}} readOnly />
                   </div>
                 </div>
-                <div className={`h-[200px] shrink-0 overflow-y-auto border-t border-[var(--color-border)] ${showingSolution ? "hidden" : ""}`}>
+                <div className={`h-50 shrink-0 overflow-y-auto border-t border-(--color-border) ${showingSolution ? "hidden" : ""}`}>
                   <OutputPanel result={result} isRunning={isRunning} />
                 </div>
               </>
