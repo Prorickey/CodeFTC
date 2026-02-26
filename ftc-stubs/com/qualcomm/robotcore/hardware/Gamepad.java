@@ -11,72 +11,90 @@ public class Gamepad {
 
     // Analog sticks
     /** Left stick horizontal axis. Range: [-1.0, 1.0], left is negative. */
-    public float left_stick_x = 0.0f;
+    public volatile float left_stick_x = 0.0f;
 
     /** Left stick vertical axis. Range: [-1.0, 1.0], up is negative. */
-    public float left_stick_y = 0.0f;
+    public volatile float left_stick_y = 0.0f;
 
     /** Right stick horizontal axis. Range: [-1.0, 1.0], left is negative. */
-    public float right_stick_x = 0.0f;
+    public volatile float right_stick_x = 0.0f;
 
     /** Right stick vertical axis. Range: [-1.0, 1.0], up is negative. */
-    public float right_stick_y = 0.0f;
+    public volatile float right_stick_y = 0.0f;
 
     // Face buttons
-    /** A button (bottom). */
-    public boolean a = false;
+    /** A button (bottom). Also: cross on PS4 controllers. */
+    public volatile boolean a = false;
 
-    /** B button (right). */
-    public boolean b = false;
+    /** B button (right). Also: circle on PS4 controllers. */
+    public volatile boolean b = false;
 
-    /** X button (left). */
-    public boolean x = false;
+    /** X button (left). Also: square on PS4 controllers. */
+    public volatile boolean x = false;
 
-    /** Y button (top). */
-    public boolean y = false;
+    /** Y button (top). Also: triangle on PS4 controllers. */
+    public volatile boolean y = false;
 
     // D-pad
     /** D-pad up. */
-    public boolean dpad_up = false;
+    public volatile boolean dpad_up = false;
 
     /** D-pad down. */
-    public boolean dpad_down = false;
+    public volatile boolean dpad_down = false;
 
     /** D-pad left. */
-    public boolean dpad_left = false;
+    public volatile boolean dpad_left = false;
 
     /** D-pad right. */
-    public boolean dpad_right = false;
+    public volatile boolean dpad_right = false;
 
     // Bumpers
     /** Left bumper. */
-    public boolean left_bumper = false;
+    public volatile boolean left_bumper = false;
 
     /** Right bumper. */
-    public boolean right_bumper = false;
+    public volatile boolean right_bumper = false;
 
     // Triggers
     /** Left trigger. Range: [0.0, 1.0]. */
-    public float left_trigger = 0.0f;
+    public volatile float left_trigger = 0.0f;
 
     /** Right trigger. Range: [0.0, 1.0]. */
-    public float right_trigger = 0.0f;
+    public volatile float right_trigger = 0.0f;
 
     // Additional buttons
     /** Left stick button (pressing the stick). */
-    public boolean left_stick_button = false;
+    public volatile boolean left_stick_button = false;
 
     /** Right stick button (pressing the stick). */
-    public boolean right_stick_button = false;
+    public volatile boolean right_stick_button = false;
 
     /** Guide / home button. */
-    public boolean guide = false;
+    public volatile boolean guide = false;
 
-    /** Start button. */
-    public boolean start = false;
+    /** Start button. Also: options on PS4 controllers. */
+    public volatile boolean start = false;
 
-    /** Back button. */
-    public boolean back = false;
+    /** Back button. Also: share on PS4 controllers. */
+    public volatile boolean back = false;
+
+    // PS4 aliases
+    /** PS4 alias for b. */
+    public volatile boolean circle = false;
+    /** PS4 alias for a. */
+    public volatile boolean cross = false;
+    /** PS4 alias for y. */
+    public volatile boolean triangle = false;
+    /** PS4 alias for x. */
+    public volatile boolean square = false;
+    /** PS4 alias for back. */
+    public volatile boolean share = false;
+    /** PS4 alias for start. */
+    public volatile boolean options = false;
+    /** PS4 touchpad button. */
+    public volatile boolean touchpad = false;
+    /** PS4 PS button. */
+    public volatile boolean ps = false;
 
     /**
      * Creates a gamepad with all inputs at their default (zero/false) values.

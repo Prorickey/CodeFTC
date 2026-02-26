@@ -59,14 +59,6 @@ public interface Telemetry {
     void speak(String text);
 
     /**
-     * Speaks a text string with language and country options.
-     * @param text the text to speak
-     * @param languageCode the language code (e.g., "en")
-     * @param countryCode the country code (e.g., "US")
-     */
-    void speak(String text, String languageCode, String countryCode);
-
-    /**
      * Sets whether telemetry is automatically cleared after each update().
      * @param autoClear true to auto-clear
      */

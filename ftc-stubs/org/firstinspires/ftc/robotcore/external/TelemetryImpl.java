@@ -93,12 +93,6 @@ public class TelemetryImpl implements Telemetry {
     }
 
     @Override
-    public void speak(String text, String languageCode, String countryCode) {
-        spokenText.add(text);
-        log.add("[speak:" + languageCode + "-" + countryCode + "] " + text);
-    }
-
-    @Override
     public void setAutoClear(boolean autoClear) {
         this.autoClear = autoClear;
         log.add("[setAutoClear(" + autoClear + ")]");

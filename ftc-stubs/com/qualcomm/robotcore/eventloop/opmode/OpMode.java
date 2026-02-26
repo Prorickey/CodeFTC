@@ -32,6 +32,9 @@ public abstract class OpMode {
     /** Gamepad 2 (typically the operator). */
     public Gamepad gamepad2 = new Gamepad();
 
+    /** Elapsed time in seconds since the OpMode was last started. Updated by the framework. */
+    public volatile double time = 0.0;
+
     /** Log of lifecycle method calls, in order. */
     private final List<String> callLog = new ArrayList<>();
 
@@ -89,6 +92,23 @@ public abstract class OpMode {
     public void resetRuntime() {
         startTime = System.currentTimeMillis();
         callLog.add("resetRuntime()");
+    }
+
+    /**
+     * Immediately terminates the OpMode.
+     * In this stub, throws a RuntimeException to halt execution.
+     */
+    public void terminateOpModeNow() {
+        callLog.add("terminateOpModeNow()");
+        throw new RuntimeException("OpMode terminated by terminateOpModeNow()");
+    }
+
+    /**
+     * Sends telemetry data to the Driver Station.
+     * @param telemetry the telemetry object to update
+     */
+    public void updateTelemetry(Telemetry telemetry) {
+        telemetry.update();
     }
 
     // --- Test helper methods ---

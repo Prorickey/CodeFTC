@@ -87,7 +87,7 @@ public abstract class LinearOpMode {
      *   }
      * </pre>
      */
-    public abstract void runOpMode();
+    public abstract void runOpMode() throws InterruptedException;
 
     /**
      * Pauses the linear OpMode until START is pressed on the Driver Station.
@@ -128,6 +128,15 @@ public abstract class LinearOpMode {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Returns whether the OpMode is currently in the init phase
+     * (after INIT pressed, before START pressed).
+     * @return true if in the init phase
+     */
+    public boolean opModeInInit() {
+        return !started && !stopRequested;
     }
 
     /**
