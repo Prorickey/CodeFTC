@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const body = await request.json()
+    const body: unknown = await request.json()
     const { code, lessonId } = body as { code: string; lessonId: string }
 
     if (!code || !lessonId) {

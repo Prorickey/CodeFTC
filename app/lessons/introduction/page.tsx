@@ -60,7 +60,7 @@ export default async function IntroductionPage() {
             </ul>
             <p>
               Write your solution in the editor, click <strong className="text-[var(--color-success)]">Run</strong>, and your
-              Java code is compiled and tested on a real JDK. You'll see green checkmarks for passing
+              Java code is compiled and tested on a real JDK. You&apos;ll see green checkmarks for passing
               tests and helpful error messages when something needs fixing.
             </p>
           </div>

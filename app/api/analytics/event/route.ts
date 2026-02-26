@@ -7,7 +7,7 @@ const ALLOWED_TYPES: EventType[] = ["lesson_view", "hint_view", "solution_view"]
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    const body: unknown = await request.json()
     const { type, lessonId, hintIndex } = body as {
       type: EventType
       lessonId: string

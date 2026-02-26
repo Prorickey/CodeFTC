@@ -114,7 +114,7 @@ function loadTestProgress(modules: SidebarModule[]): TestProgress {
       const key = `ftc-tests:${lesson.moduleSlug}/${lesson.slug}`
       try {
         const raw = localStorage.getItem(key)
-        if (raw) result[`${lesson.moduleSlug}/${lesson.slug}`] = JSON.parse(raw)
+        if (raw) result[`${lesson.moduleSlug}/${lesson.slug}`] = JSON.parse(raw) as { passed: number; total: number }
       } catch { /* ignore */ }
     }
   }
@@ -133,8 +133,8 @@ export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: Sidebar
   const [testProgress, setTestProgress] = useState<TestProgress>({})
 
   useEffect(() => {
-    setTestProgress(loadTestProgress(modules))
     const handler = () => setTestProgress(loadTestProgress(modules))
+    handler()
     window.addEventListener("ftc-tests-updated", handler)
     return () => window.removeEventListener("ftc-tests-updated", handler)
   }, [modules])

@@ -61,8 +61,8 @@ export function ProgressPage({ modules }: { modules: SidebarModule[] }) {
   const [progress, setProgress] = useState<AllProgress>({})
 
   useEffect(() => {
-    setProgress(loadAllProgress(modules))
     const handler = () => setProgress(loadAllProgress(modules))
+    handler()
     window.addEventListener("ftc-tests-updated", handler)
     return () => window.removeEventListener("ftc-tests-updated", handler)
   }, [modules])

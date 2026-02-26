@@ -1,7 +1,10 @@
 "use client"
 
+// monaco-editor types can't be resolved by the TS project service under moduleResolution:bundler
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+
 import dynamic from "next/dynamic"
-import type { OnMount } from "@monaco-editor/react"
+import type { Monaco, OnMount } from "@monaco-editor/react"
 import completionsData from "@/lib/ftc-completions.json"
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -94,7 +97,7 @@ function inferTypes(code: string): Record<string, string> {
 
 let providerRegistered = false
 
-function registerFtcProvider(monaco: Parameters<OnMount>[1]) {
+function registerFtcProvider(monaco: Monaco) {
   if (providerRegistered) return
   providerRegistered = true
 
@@ -251,7 +254,7 @@ type Range = { startLineNumber: number; endLineNumber: number; startColumn: numb
 function buildMethodSuggestion(
   m: CompletionMethod,
   range: Range,
-  CIK: Parameters<OnMount>[1]["languages"]["CompletionItemKind"]
+  CIK: Monaco["languages"]["CompletionItemKind"]
 ) {
   const paramList = m.params.map((p) => `${p.type} ${p.name}`).join(", ")
   const snippet =
@@ -273,7 +276,7 @@ function buildMethodSuggestion(
 function buildFieldSuggestion(
   f: CompletionField,
   range: Range,
-  CIK: Parameters<OnMount>[1]["languages"]["CompletionItemKind"]
+  CIK: Monaco["languages"]["CompletionItemKind"]
 ) {
   return {
     label: f.name,
