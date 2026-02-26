@@ -1,0 +1,160 @@
+---
+title: "Detecting AprilTags"
+description: "Use the FTC SDK's built-in AprilTag processor to detect field targets and read their range, bearing, and yaw in your OpMode."
+---
+
+# Detecting AprilTags
+
+AprilTags are black-and-white fiducial markers — similar to QR codes — that are placed around the FTC field each season. Your robot's camera can detect them and calculate the tag's exact position and orientation relative to the camera. This gives you a reliable, field-fixed reference point for autonomous navigation.
+
+## What Is an AprilTag?
+
+An AprilTag encodes a numeric ID in a grid of black and white squares surrounded by a thick black border. The FTC SDK includes a tag library for each season's field layout, so when your camera sees a tag it can tell you:
+
+- **Which tag it is** (by ID — typically 1–16 for an FTC field)
+- **How far away it is** (range in inches)
+- **What angle it is at** (bearing — left/right, elevation — up/down)
+- **Its orientation** (yaw, pitch, roll)
+
+## Setting Up the AprilTagProcessor
+
+The `AprilTagProcessor` is already available in the FTC SDK — no external library needed. Build one with its `Builder` before creating the `VisionPortal`:
+
+```java
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+
+AprilTagProcessor aprilTag = new AprilTagProcessor.Builder()
+        .setDrawAxes(true)          // Draw X/Y/Z axes on detected tags (DS camera stream)
+        .setDrawTagOutline(true)    // Draw outline box around each tag
+        .build();
+```
+
+Then add it to your `VisionPortal` as shown in the previous lesson.
+
+## Reading Detections
+
+Call `aprilTag.getDetections()` inside your loop to get the list of tags visible in the most recent frame:
+
+```java
+import java.util.List;
+
+List<AprilTagDetection> detections = aprilTag.getDetections();
+
+for (AprilTagDetection detection : detections) {
+    telemetry.addLine("--- Tag " + detection.id + " ---");
+    telemetry.addData("  Range (in)",   "%.1f", detection.ftcPose.range);
+    telemetry.addData("  Bearing (°)",  "%.1f", detection.ftcPose.bearing);
+    telemetry.addData("  Yaw (°)",      "%.1f", detection.ftcPose.yaw);
+}
+telemetry.update();
+```
+
+`getDetections()` returns a snapshot list — it will not change mid-loop even if new frames arrive.
+
+## Understanding the Pose Fields
+
+Each `AprilTagDetection` has a `ftcPose` field of type `AprilTagPoseFtc`:
+
+| Field | Description | Unit |
+|---|---|---|
+| `range` | Straight-line distance from camera to tag center | inches |
+| `bearing` | Horizontal angle from camera's forward axis to tag. Positive = left | degrees |
+| `elevation` | Vertical angle from camera's forward axis to tag. Positive = up | degrees |
+| `yaw` | Tag's rotation around its vertical axis (how much it is turned away) | degrees |
+| `x` | Lateral offset — positive is right | inches |
+| `y` | Forward distance | inches |
+| `z` | Vertical offset — positive is up | inches |
+
+For most autonomous navigation tasks, `range` and `bearing` are the two most useful values.
+
+## Filtering by Tag ID
+
+In competition, you often only care about specific tags. Filter the detections list:
+
+```java
+for (AprilTagDetection detection : aprilTag.getDetections()) {
+    if (detection.id == 5) {
+        // Found the specific tag we wanted
+        double distanceToTag = detection.ftcPose.range;
+        double angleToTag    = detection.ftcPose.bearing;
+        // ... use for navigation
+    }
+}
+```
+
+## Checking Detection Quality
+
+The `decisionMargin` field indicates how confidently the detector recognized the tag. A higher value means more reliable. Values below about 35 can indicate a noisy or partially-occluded detection:
+
+```java
+for (AprilTagDetection detection : aprilTag.getDetections()) {
+    if (detection.decisionMargin < 35) {
+        continue; // skip low-confidence detections
+    }
+    // Process reliable detections only
+    telemetry.addData("Tag " + detection.id, "range=%.1f in", detection.ftcPose.range);
+}
+```
+
+## A Complete Autonomous Example
+
+```java
+@Autonomous(name = "Align to Tag 5")
+public class AlignToTag extends LinearOpMode {
+
+    static final int TARGET_TAG_ID = 5;
+    static final double TARGET_RANGE = 12.0; // inches
+
+    @Override
+    public void runOpMode() {
+        AprilTagProcessor aprilTag = new AprilTagProcessor.Builder().build();
+
+        VisionPortal portal = new VisionPortal.Builder()
+                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+                .addProcessor(aprilTag)
+                .build();
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            AprilTagDetection target = null;
+
+            for (AprilTagDetection d : aprilTag.getDetections()) {
+                if (d.id == TARGET_TAG_ID) {
+                    target = d;
+                    break;
+                }
+            }
+
+            if (target != null) {
+                double rangeError   = target.ftcPose.range   - TARGET_RANGE;
+                double bearingError = target.ftcPose.bearing; // 0 = centered
+
+                telemetry.addData("Range error",   "%.1f in", rangeError);
+                telemetry.addData("Bearing error", "%.1f °",  bearingError);
+                // Use these errors to drive the robot ...
+            } else {
+                telemetry.addLine("Tag " + TARGET_TAG_ID + " not visible");
+            }
+
+            telemetry.update();
+        }
+
+        portal.close();
+    }
+}
+```
+
+## Your Exercise
+
+Two AprilTags have been detected by the camera. Your task is to loop through all detections and output each tag's ID, range, and bearing to telemetry.
+
+For each detection, output:
+- Caption `"Tag ID"`, value = `detection.id`
+- Caption `"Range (in)"`, format `"%.1f"`, value = `detection.ftcPose.range`
+- Caption `"Bearing (deg)"`, format `"%.1f"`, value = `detection.ftcPose.bearing`
+
+Then call `telemetry.update()` once after the loop.
+
+The two pre-seeded tags are: **ID 3** at range **24.0 in, bearing −5.0°** and **ID 7** at range **36.5 in, bearing 12.0°**. The test checks that both IDs and both ranges appear in the telemetry output.

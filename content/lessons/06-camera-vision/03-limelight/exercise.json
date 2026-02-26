@@ -1,0 +1,22 @@
+{
+  "title": "The Limelight 3A",
+  "testCount": 4,
+  "hints": [
+    {
+      "title": "Getting the Limelight from hardwareMap",
+      "content": "Use `Limelight3A limelight = hardwareMap.get(Limelight3A.class, \"limelight\");`. Import `com.qualcomm.hardware.limelightvision.Limelight3A`."
+    },
+    {
+      "title": "Starting the Limelight",
+      "content": "Call `limelight.pipelineSwitch(0)` to select the pipeline, then `limelight.start()` to begin processing. Do this before calling getLatestResult()."
+    },
+    {
+      "title": "Reading the result",
+      "content": "Call `LLResult result = limelight.getLatestResult()`. Always null-check: `if (result != null && result.isValid())`. Then use `result.getTx()` and `result.getTy()` for the overall target offsets."
+    },
+    {
+      "title": "Iterating fiducial results",
+      "content": "Call `result.getFiducialResults()` which returns a `List<LLResultTypes.FiducialResult>`. Loop with `for (LLResultTypes.FiducialResult tag : result.getFiducialResults())`, then use `tag.getFiducialId()` and `tag.getTargetXDegrees()`."
+    }
+  ]
+}

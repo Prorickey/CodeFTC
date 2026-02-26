@@ -1,0 +1,18 @@
+{
+  "title": "Connecting Cameras",
+  "testCount": 3,
+  "hints": [
+    {
+      "title": "Building the AprilTagProcessor",
+      "content": "Create it with the builder: `AprilTagProcessor aprilTag = new AprilTagProcessor.Builder().build();`. Store the reference — you will use it later to call getDetectionCount()."
+    },
+    {
+      "title": "Building the VisionPortal",
+      "content": "Use `new VisionPortal.Builder().setCamera(hardwareMap.get(WebcamName.class, \"Webcam 1\")).addProcessor(aprilTag).build()`. Make sure to call setCamera() before build() or you will get an exception."
+    },
+    {
+      "title": "Reading and displaying the state",
+      "content": "Call `portal.getPortalState()` which returns a `VisionPortal.PortalState` enum value. Use `telemetry.addData(\"State\", portal.getPortalState())` — telemetry will call toString() on the enum, printing \"RUNNING\"."
+    }
+  ]
+}

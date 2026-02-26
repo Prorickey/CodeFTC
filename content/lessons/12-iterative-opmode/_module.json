@@ -1,6 +1,6 @@
 {
   "title": "Iterative OpMode",
   "slug": "10-iterative-opmode",
-  "order": 11,
+  "order": 12,
   "description": "The OpMode base class, its init/loop lifecycle, and how to write non-blocking control patterns."
 }

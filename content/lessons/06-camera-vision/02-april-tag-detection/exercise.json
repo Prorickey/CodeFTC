@@ -1,0 +1,22 @@
+{
+  "title": "Detecting AprilTags",
+  "testCount": 4,
+  "hints": [
+    {
+      "title": "Getting the detections list",
+      "content": "Call `List<AprilTagDetection> detections = aprilTag.getDetections();` after waitForStart(). You need `import java.util.List;` and `import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;`."
+    },
+    {
+      "title": "Looping through detections",
+      "content": "Use a for-each loop: `for (AprilTagDetection detection : detections) { ... }`. Inside the loop, access `detection.id` and `detection.ftcPose.range` / `detection.ftcPose.bearing`."
+    },
+    {
+      "title": "Telemetry format",
+      "content": "Use `telemetry.addData(\"Tag ID\", detection.id)`, `telemetry.addData(\"Range (in)\", \"%.1f\", detection.ftcPose.range)`, and `telemetry.addData(\"Bearing (deg)\", \"%.1f\", detection.ftcPose.bearing)` inside the loop. Call `telemetry.update()` once after the loop ends."
+    },
+    {
+      "title": "Where does aprilTag come from?",
+      "content": "Build it before the VisionPortal: `AprilTagProcessor aprilTag = new AprilTagProcessor.Builder().build();`. The test pre-seeds two detections into it before calling runOpMode()."
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+---
+title: "The Limelight 3A"
+description: "Learn what the Limelight 3A is, how it differs from a webcam, and how to read its targeting and AprilTag results in your OpMode."
+---
+
+# The Limelight 3A
+
+The **Limelight 3A** is a dedicated vision coprocessor made by REV Robotics (originally designed for FRC, now officially supported in FTC). Instead of sending raw video to the Control Hub for your Java code to process, the Limelight does all the vision processing onboard and sends your code a simple result: *"here is the target, here is its angle."*
+
+This is a fundamentally different model from the `VisionPortal` approach you learned in the previous lessons.
+
+## Webcam + VisionPortal vs. Limelight 3A
+
+| | USB Webcam + VisionPortal | Limelight 3A |
+|---|---|---|
+| **Processing location** | Control Hub CPU | Limelight's onboard processor |
+| **Control Hub CPU load** | Medium–High | Minimal (just reading results) |
+| **Setup** | Code-side builder pattern | Configure pipelines in a web UI |
+| **Latency** | ~50–200 ms | ~15–30 ms |
+| **Flexibility** | Full access to raw frames | Only what pipelines expose |
+| **Cost** | ~$25–60 (webcam only) | ~$250 |
+| **Communication** | USB → internal | I2C → Control Hub |
+| **AprilTag support** | Built-in SDK processor | Built-in pipeline (fiducial) |
+| **Custom detection** | Write your own processor | Configure in web dashboard |
+
+**When to use the Limelight:** When you need the fastest possible targeting latency, want to offload vision from the Control Hub CPU, or need reliable color/reflective-tape detection without writing custom code.
+
+**When to use a webcam:** When you need flexibility, want full control over frame processing, or are on a budget.
+
+## Hardware Setup
+
+The Limelight 3A connects to a **USB port** on the Control Hub for power and an **I2C port** for communication. In robot config:
+
+1. Add it as an I2C device under the Control Hub's I2C bus
+2. Set its device type to **Limelight 3A**
+3. Name it — `"limelight"` is conventional
+
+The Limelight also hosts a **web dashboard** accessible from a laptop on the same network as the robot. You use the dashboard to configure **pipelines** (numbered 0–9), each of which can be set to one detection mode:
+
+- **AprilTag (Fiducial)** — detects and locates AprilTags
+- **Color thresholding** — detects colored objects
+- **Retroreflective** — detects reflective tape (common in FRC)
+- **Neural network** — runs a TensorFlow Lite model
+
+## The SDK API
+
+The Limelight is accessed through `Limelight3A`, which lives in `com.qualcomm.hardware.limelightvision`:
+
+```java
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+
+Limelight3A limelight = hardwareMap.get(Limelight3A.class, "limelight");
+```
+
+### Starting and Switching Pipelines
+
+```java
+limelight.pipelineSwitch(0); // Activate pipeline 0 (e.g., AprilTag)
+limelight.start();           // Begin streaming and processing
+```
+
+Always call `start()` before trying to read results. Calling `pipelineSwitch()` before `start()` queues the pipeline for when streaming begins.
+
+### Reading Results
+
+Call `getLatestResult()` in your loop. It returns an `LLResult` snapshot, or `null` if the Limelight is not running:
+
+```java
+LLResult result = limelight.getLatestResult();
+
+if (result != null && result.isValid()) {
+    double tx = result.getTx(); // horizontal offset to best target (degrees)
+    double ty = result.getTy(); // vertical offset to best target (degrees)
+    double ta = result.getTa(); // target area (% of image, 0–100)
+
+    telemetry.addData("TX", "%.2f°", tx);
+    telemetry.addData("TY", "%.2f°", ty);
+    telemetry.addData("TA", "%.2f%%", ta);
+}
+```
+
+`tx` and `ty` are the angles from the Limelight's crosshair to the center of the best detected target. When `tx` is 0, the target is centered horizontally. This is perfect for a simple "aim at target" control loop:
+
+```java
+// Simple proportional aim loop
+double kP = 0.02; // tune this
+double turnPower = kP * result.getTx(); // positive tx → turn left
+leftMotors.setPower(-turnPower);
+rightMotors.setPower(turnPower);
+```
+
+### Reading AprilTag (Fiducial) Results
+
+When pipeline 0 is set to **fiducial** mode, the result includes a list of detected AprilTags:
+
+```java
+import java.util.List;
+
+LLResult result = limelight.getLatestResult();
+
+if (result != null && result.isValid()) {
+    List<LLResultTypes.FiducialResult> tags = result.getFiducialResults();
+
+    for (LLResultTypes.FiducialResult tag : tags) {
+        int    id = tag.getFiducialId();
+        double x  = tag.getTargetXDegrees(); // horizontal offset
+        double y  = tag.getTargetYDegrees(); // vertical offset
+
+        telemetry.addData("Tag ID", id);
+        telemetry.addData("  TX",   "%.2f°", x);
+        telemetry.addData("  TY",   "%.2f°", y);
+    }
+}
+```
+
+This is the same AprilTag concept as `VisionPortal`, but the detection happens entirely on the Limelight hardware.
+
+## Checking Staleness
+
+The `getStaleness()` method returns how old the result is in milliseconds. In a fast control loop, you can skip stale results:
+
+```java
+LLResult result = limelight.getLatestResult();
+if (result != null && result.isValid() && result.getStaleness() < 100) {
+    // Result is fresh (less than 100 ms old)
+}
+```
+
+## Stopping the Limelight
+
+When your OpMode finishes, stop the Limelight to save power:
+
+```java
+limelight.stop();
+```
+
+## A Complete Example
+
+```java
+@Autonomous(name = "Limelight Aim")
+public class LimelightAim extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        Limelight3A limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.pipelineSwitch(0); // Pipeline 0 = AprilTag
+        limelight.start();
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            LLResult result = limelight.getLatestResult();
+
+            if (result != null && result.isValid()) {
+                telemetry.addData("TX", "%.2f°", result.getTx());
+                telemetry.addData("TY", "%.2f°", result.getTy());
+                telemetry.addData("TA", "%.2f%%", result.getTa());
+
+                for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                    telemetry.addLine("Tag " + tag.getFiducialId()
+                            + " at (" + tag.getTargetXDegrees() + "°, "
+                            + tag.getTargetYDegrees() + "°)");
+                }
+            } else {
+                telemetry.addLine("No target");
+            }
+            telemetry.update();
+        }
+
+        limelight.stop();
+    }
+}
+```
+
+## Your Exercise
+
+You will start the Limelight on pipeline `0`, read the latest result, and output the TX, TY, and each fiducial tag's ID and X angle to telemetry.
+
+The Limelight has been pre-configured with a result containing:
+- TX = **−4.5°**, TY = **2.1°**, TA = **3.7%**
+- One fiducial detection: **tag ID 2**, target X = **−4.5°**, target Y = **2.1°**
+
+Your task after `waitForStart()`:
+1. Call `limelight.pipelineSwitch(0)` then `limelight.start()`.
+2. Get the latest result.
+3. If the result is not null and `isValid()`, display on telemetry:
+   - `"TX"` → `result.getTx()`
+   - `"TY"` → `result.getTy()`
+4. Loop through `result.getFiducialResults()` and for each tag display:
+   - `"Tag ID"` → `tag.getFiducialId()`
+   - `"Tag TX"` → `tag.getTargetXDegrees()`
+5. Call `telemetry.update()`.
+6. Call `limelight.stop()`.
+
+The test will verify that TX, TY, the tag ID, and the tag TX all appear in telemetry.
