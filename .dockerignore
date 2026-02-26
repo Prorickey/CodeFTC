@@ -7,3 +7,4 @@ node_modules
 !README.md
 .tmp-exec
 docker/java-sandbox
+!docker/java-sandbox/entrypoint.sh

@@ -1,8 +1,5 @@
 #!/bin/sh
 set -e
 
-echo "Running database migrations..."
-bunx prisma migrate deploy
-
 echo "Starting Next.js..."
 exec node server.js

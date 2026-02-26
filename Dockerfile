@@ -22,14 +22,6 @@ ENV NODE_ENV=production
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Install only production dependencies (needed for prisma CLI + adapter at runtime)
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production
-
-# Prisma: config, schema, migrations, generated client
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-
 # Lesson content (read at runtime by server)
 COPY --from=builder /app/content ./content
 
