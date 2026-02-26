@@ -1,0 +1,167 @@
+---
+title: "Kalman Filter"
+description: "Use a Kalman filter to produce an optimal estimate of robot state by modeling sensor noise mathematically."
+---
+
+# Kalman Filter
+
+The complementary filter from the previous lesson works well, but its blend weight `α` is a fixed guess. The **Kalman filter** takes a more principled approach: it models exactly *how noisy* each sensor is and uses that model to compute the mathematically optimal blend automatically. It is the algorithm behind Road Runner's odometry, GPS receivers, and spacecraft navigation.
+
+## The Core Idea
+
+The Kalman filter maintains two things at all times:
+
+1. **An estimate** of the quantity you care about (e.g., heading in degrees).
+2. **An uncertainty** about that estimate (how much you trust it).
+
+Every loop iteration has two phases:
+
+- **Predict**: use your model of how the state changes to project the estimate forward. Uncertainty grows because predictions are imperfect.
+- **Update**: take a new sensor measurement and pull the estimate toward it. Uncertainty shrinks because new data is informative.
+
+The filter automatically weights the prediction and the measurement by their relative uncertainties — if the sensor is very noisy, the estimate barely moves toward it; if it is very accurate, the estimate moves a lot.
+
+## The 1D Kalman Filter
+
+For a single variable (like heading), the equations are surprisingly simple. There are only four variables to track:
+
+| Variable | Meaning |
+|----------|---------|
+| `x` | Current estimate |
+| `p` | Estimate uncertainty (error covariance) |
+| `q` | Process noise — how much the true state drifts per loop |
+| `r` | Measurement noise — how noisy the sensor is |
+
+### Predict step
+
+```java
+// The state may drift; our uncertainty grows
+p = p + q;
+```
+
+### Update step
+
+```java
+// Kalman gain: how much to trust the new measurement
+double k = p / (p + r);
+
+// Pull the estimate toward the measurement
+x = x + k * (measurement - x);
+
+// Shrink uncertainty now that we have new information
+p = (1.0 - k) * p;
+```
+
+The **Kalman gain** `k` is the key. When `p` is large (we are very uncertain about our estimate), `k` approaches 1.0 and we lean heavily on the measurement. When `r` is large (the sensor is very noisy), `k` approaches 0.0 and we stick with our current estimate.
+
+## Tuning Q and R
+
+`q` and `r` are the two constants you tune:
+
+- **`r` (measurement noise)**: how noisy is your sensor? A jittery distance sensor might have `r = 4.0` (standard deviation ~2cm). A stable IMU might have `r = 0.01`. Start by observing how much the raw sensor reading varies when the robot is stationary.
+
+- **`q` (process noise)**: how much does the true state drift between loop iterations? For heading, this is small if the robot is moving smoothly (`q = 0.01`). Increase it if you expect sudden disturbances.
+
+The ratio `q/r` is what matters most:
+- High `q/r`: filter responds quickly to measurements (trusts the sensor more)
+- Low `q/r`: filter responds slowly, smoothing out noise (trusts the model more)
+
+## A Complete 1D Kalman Filter Class
+
+```java
+public class KalmanFilter {
+    private double x;   // Estimate
+    private double p;   // Uncertainty
+    private double q;   // Process noise
+    private double r;   // Measurement noise
+
+    public KalmanFilter(double initialEstimate, double initialUncertainty,
+                        double processNoise, double measurementNoise) {
+        this.x = initialEstimate;
+        this.p = initialUncertainty;
+        this.q = processNoise;
+        this.r = measurementNoise;
+    }
+
+    public double update(double measurement) {
+        // Predict
+        p = p + q;
+
+        // Update
+        double k = p / (p + r);
+        x = x + k * (measurement - x);
+        p = (1.0 - k) * p;
+
+        return x;
+    }
+
+    public double getEstimate() { return x; }
+    public double getUncertainty() { return p; }
+}
+```
+
+## Using the Filter for Heading
+
+```java
+// q=0.1 means some process drift; r=1.0 means sensor has ~1° noise
+KalmanFilter headingFilter = new KalmanFilter(0.0, 1.0, 0.1, 1.0);
+
+while (opModeIsActive()) {
+    double rawHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+
+    double filteredHeading = headingFilter.update(rawHeading);
+
+    // Use filtered heading for heading hold
+    double error      = targetHeading - filteredHeading;
+    double turnPower  = Kp * error;
+    leftMotor.setPower(drivePower + turnPower);
+    rightMotor.setPower(drivePower - turnPower);
+
+    telemetry.addData("Raw heading",      rawHeading);
+    telemetry.addData("Filtered heading", filteredHeading);
+    telemetry.addData("Uncertainty",      headingFilter.getUncertainty());
+    telemetry.update();
+}
+```
+
+After a few iterations, `getUncertainty()` will settle to a small steady-state value. The estimate becomes stable and tracks the true heading closely without amplifying sensor noise.
+
+## Kalman vs Complementary Filter
+
+| | Complementary Filter | Kalman Filter |
+|---|---|---|
+| Parameters | One fixed weight `α` | `q` and `r` per sensor |
+| Adapts to noise | No | Yes — gain adjusts automatically |
+| Implementation | 1 line | ~10 lines |
+| Optimality | Not guaranteed | Optimal under Gaussian noise |
+| Tuning effort | Low | Moderate |
+
+Use the complementary filter for quick prototyping. Use the Kalman filter when you need the best possible estimate and are willing to model your sensor noise.
+
+## Your Exercise
+
+You will implement a `KalmanFilter` class and use it to filter a noisy heading measurement.
+
+The filter parameters are:
+- Initial estimate: **0.0°**
+- Initial uncertainty: **1.0**
+- Process noise `q`: **0.1**
+- Measurement noise `r`: **1.0**
+
+The IMU returns a noisy reading of **6.0°**.
+
+After one `update(6.0)` call:
+- `k = p / (p + r) = (1.0 + 0.1) / (1.1 + 1.0) = 1.1 / 2.1 ≈ 0.5238`
+- `x = 0.0 + 0.5238 * (6.0 - 0.0) ≈ 3.143°`
+- `p = (1 - 0.5238) * 1.1 ≈ 0.524`
+
+Your task:
+
+1. Implement the `KalmanFilter` class with `update(double measurement)` and `getEstimate()` methods inside your `StudentCode` class.
+2. Get `leftMotor`, `rightMotor`, and `imu` from the hardware map. Initialize the IMU.
+3. After `waitForStart()`, create a `KalmanFilter` with the parameters above.
+4. Read the raw IMU heading and call `filter.update(rawHeading)`.
+5. Use the filtered heading for heading hold: `Kp = 0.02`, `targetHeading = 0.0`, `drivePower = 0.5`.
+6. Set the motor powers.
+
+Expected: the filtered heading ≈ **3.143°**, so `leftPower ≈ 0.437` and `rightPower ≈ 0.563`.

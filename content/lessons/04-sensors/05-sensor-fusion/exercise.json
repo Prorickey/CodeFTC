@@ -1,0 +1,18 @@
+{
+  "title": "Sensor Fusion",
+  "testCount": 2,
+  "hints": [
+    {
+      "title": "Computing encoder heading",
+      "content": "Use `double encoderHeading = (rightMotor.getCurrentPosition() - leftMotor.getCurrentPosition()) / COUNTS_PER_DEGREE;`. The right encoder is 100 ticks ahead of the left, and COUNTS_PER_DEGREE is 10.0, giving 10.0 degrees."
+    },
+    {
+      "title": "Applying the complementary filter",
+      "content": "Use `double fusedHeading = ALPHA * encoderHeading + (1.0 - ALPHA) * imuHeading;`. With ALPHA=0.5, encoderHeading=10.0, and imuHeading=0.0: fusedHeading = 0.5*10.0 + 0.5*0.0 = 5.0."
+    },
+    {
+      "title": "Heading hold from fused heading",
+      "content": "error = targetHeading - fusedHeading = 0 - 5.0 = -5.0. turnPower = Kp * error = 0.02 * -5.0 = -0.1. leftPower = 0.5 + (-0.1) = 0.4, rightPower = 0.5 - (-0.1) = 0.6."
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "title": "Kalman Filter",
+  "testCount": 2,
+  "hints": [
+    {
+      "title": "The predict step",
+      "content": "In the update() method, first grow uncertainty: `p = p + q;`. This reflects that the true state may have drifted since the last measurement."
+    },
+    {
+      "title": "The update step",
+      "content": "Compute the Kalman gain: `double k = p / (p + r);`. Then blend estimate toward the measurement: `x = x + k * (measurement - x);`. Finally shrink uncertainty: `p = (1.0 - k) * p;`"
+    },
+    {
+      "title": "Using the filtered heading",
+      "content": "After `filter.update(rawHeading)`, get the result with `filter.getEstimate()`. Use it for heading hold the same way as a raw IMU reading: `error = targetHeading - filteredHeading;`"
+    }
+  ]
+}

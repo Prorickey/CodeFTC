@@ -1,0 +1,140 @@
+---
+title: "Sensor Fusion"
+description: "Combine readings from multiple sensors to produce a more accurate and reliable estimate than any single sensor can provide."
+---
+
+# Sensor Fusion
+
+Every sensor lies to you a little. Encoders lose counts when wheels slip. The IMU accumulates small gyro biases over time. Distance sensors get confused by shiny floors. No single sensor gives you a perfect picture of the robot's state.
+
+**Sensor fusion** is the technique of combining multiple imperfect sensors so their weaknesses cancel out and their strengths reinforce each other. It is one of the most powerful tools in robotics, used in everything from autonomous vehicles to spacecraft — and it applies directly to FTC.
+
+## Why Individual Sensors Fall Short
+
+### Encoders alone
+
+Wheel encoders measure how much the wheel has rotated. You can convert that to a heading estimate by comparing the left and right sides:
+
+```java
+// Positive means right side turned more → robot turned right
+double encoderHeading = (rightEncoderTicks - leftEncoderTicks) / COUNTS_PER_DEGREE;
+```
+
+This works well on a clean field surface. But if a wheel slips — during a hard stop, pushing against a wall, or driving over debris — the encoder overcounts and the heading estimate drifts. The encoder has no way to detect that the wheel slipped.
+
+### IMU alone
+
+The IMU integrates gyroscope readings to track heading. It is immune to wheel slip because it measures rotation directly. But gyroscopes have a small **bias** — a constant measurement error that accumulates over time. After 30 seconds, even a good gyro might drift 1–3 degrees. Over a full 2-minute match, this compounds.
+
+### Fused together
+
+Encoders drift during sudden events (slips) but are accurate over slow, smooth movement. The IMU drifts slowly over time but handles slip events correctly. Combined, you get something more reliable than either alone.
+
+## The Complementary Filter
+
+The simplest and most widely used fusion technique for headings is the **complementary filter**. It blends two estimates using a weight `α` (alpha):
+
+```
+fusedHeading = α × encoderHeading + (1 - α) × imuHeading
+```
+
+`α` controls how much you trust each sensor:
+
+| α value | Behavior |
+|---------|---------|
+| `α = 1.0` | Trust encoders 100%, ignore IMU |
+| `α = 0.0` | Trust IMU 100%, ignore encoders |
+| `α = 0.3` | 30% encoders, 70% IMU |
+| `α = 0.5` | Equal blend |
+
+In FTC, a common starting point is `α = 0.3` — leaning toward the IMU since gyro drift is usually smaller than cumulative encoder error over a match. Tune this value by observing which sensor is more reliable on your specific robot and field conditions.
+
+```java
+double fusedHeading = alpha * encoderHeading + (1.0 - alpha) * imuHeading;
+```
+
+The beauty of the complementary filter is that the two weights always sum to 1.0, so the output stays in the same scale as the inputs. No normalization needed.
+
+## A Worked Example
+
+- Encoder-derived heading: **10.0°** (encoder has drifted due to a wheel slip event)
+- IMU heading: **0.0°** (IMU correctly shows no rotation)
+- Alpha: **0.5** (equal blend for this example)
+
+```
+fusedHeading = 0.5 × 10.0 + 0.5 × 0.0 = 5.0°
+```
+
+The fused result of 5.0° splits the difference — it doesn't fully trust the noisy encoder, and it hedges against potential slow IMU drift. Neither sensor alone would give the right answer here.
+
+## Using the Fused Heading
+
+Once you have `fusedHeading`, use it exactly as you would use a raw IMU heading — for heading hold, for autonomous turns, for field-centric drive:
+
+```java
+// Heading hold using fused estimate
+double error      = targetHeading - fusedHeading;
+double turnPower  = Kp * error;
+double leftPower  = drivePower + turnPower;
+double rightPower = drivePower - turnPower;
+```
+
+By feeding the fused heading into your control loop, the controller benefits from the accuracy of both sensors simultaneously.
+
+## Updating the Filter Each Loop
+
+In a real OpMode, you recalculate the fused heading every loop iteration as both sensors update:
+
+```java
+while (opModeIsActive()) {
+    // Update encoder heading
+    double encoderHeading = (rightMotor.getCurrentPosition()
+                           - leftMotor.getCurrentPosition()) / COUNTS_PER_DEGREE;
+
+    // Update IMU heading
+    double imuHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+
+    // Fuse
+    double fusedHeading = ALPHA * encoderHeading + (1.0 - ALPHA) * imuHeading;
+
+    // Use in heading hold
+    double error      = targetHeading - fusedHeading;
+    double turnPower  = Kp * error;
+    leftMotor.setPower(drivePower + turnPower);
+    rightMotor.setPower(drivePower - turnPower);
+
+    telemetry.addData("Encoder heading", encoderHeading);
+    telemetry.addData("IMU heading",     imuHeading);
+    telemetry.addData("Fused heading",   fusedHeading);
+    telemetry.update();
+}
+```
+
+## Beyond the Complementary Filter
+
+The complementary filter is simple and effective, but more sophisticated approaches exist:
+
+- **Kalman Filter**: models sensor noise mathematically to produce an optimal estimate. Used in Road Runner and most professional robotics.
+- **Weighted Average with Confidence**: dynamically adjust `α` based on how confident you are in each sensor (e.g., reduce encoder weight if a sudden speed change suggests a slip).
+- **Three-Wheel Odometry**: use a third unpowered "dead wheel" encoder that doesn't slip, fused with the IMU for very accurate position tracking.
+
+For most FTC purposes, the complementary filter is the right starting point — it is fast to implement, easy to tune, and produces noticeably better results than using either sensor alone.
+
+## Your Exercise
+
+Your robot has drifted. The right encoder reads **100 ticks** more than the left encoder (`COUNTS_PER_DEGREE = 10.0`), giving an encoder heading estimate of **10.0°**. The IMU reads **0.0°**.
+
+Using `ALPHA = 0.5` (equal blend), the fused heading is **5.0°**.
+
+Then apply heading hold with `Kp = 0.02`, `targetHeading = 0.0`, and `drivePower = 0.5`.
+
+Your task:
+
+1. Get `leftMotor`, `rightMotor`, and `imu` from the hardware map. Initialize the IMU.
+2. After `waitForStart()`, compute `encoderHeading` from encoder positions divided by `COUNTS_PER_DEGREE`.
+3. Read `imuHeading` from the IMU yaw.
+4. Compute `fusedHeading = ALPHA * encoderHeading + (1.0 - ALPHA) * imuHeading`.
+5. Compute `error`, `turnPower`, `leftPower`, and `rightPower` using the fused heading.
+6. Set the motor powers.
+
+Expected: `leftMotor` at **0.4**, `rightMotor` at **0.6**.
