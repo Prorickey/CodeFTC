@@ -127,6 +127,207 @@
     "fields": [],
     "enums": {}
   },
+  "LLResult": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "isValid",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns true if the result contains a valid target."
+      },
+      {
+        "name": "getTx",
+        "returnType": "double",
+        "params": [],
+        "doc": "Horizontal offset from crosshair to best target (degrees). Negative = left."
+      },
+      {
+        "name": "getTy",
+        "returnType": "double",
+        "params": [],
+        "doc": "Vertical offset from crosshair to best target (degrees). Negative = down."
+      },
+      {
+        "name": "getTa",
+        "returnType": "double",
+        "params": [],
+        "doc": "Target area as a percentage of the full image (0.0–100.0)."
+      },
+      {
+        "name": "getStaleness",
+        "returnType": "long",
+        "params": [],
+        "doc": "How many milliseconds old this result is."
+      },
+      {
+        "name": "getFiducialResults",
+        "returnType": "List<LLResultTypes.FiducialResult>",
+        "params": [],
+        "doc": "Returns all fiducial (AprilTag) detections in this frame."
+      },
+      {
+        "name": "getColorResults",
+        "returnType": "List<LLResultTypes.ColorResult>",
+        "params": [],
+        "doc": "Returns all color/blob detections in this frame."
+      },
+      {
+        "name": "addFiducialResult",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "LLResultTypes.FiducialResult",
+            "name": "result"
+          }
+        ],
+        "doc": "Sandbox helper: add a fiducial detection to this result."
+      },
+      {
+        "name": "addColorResult",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "LLResultTypes.ColorResult",
+            "name": "result"
+          }
+        ],
+        "doc": "Sandbox helper: add a color detection to this result."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "LLResultTypes": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "getFiducialId",
+        "returnType": "int",
+        "params": [],
+        "doc": "Stub for the FTC SDK LLResultTypes class.\nContains inner classes for each type of Limelight detection result.\n/\npublic class LLResultTypes {\n\n    /**\nRepresents a single fiducial (AprilTag) detection from the Limelight.\n/\n    public static class FiducialResult {\n        private final int fiducialId;\n        private final double targetXDegrees;\n        private final double targetYDegrees;\n        private final double ta;\n\n        public FiducialResult(int fiducialId, double targetXDegrees, double targetYDegrees, double ta) {\n            this.fiducialId = fiducialId;\n            this.targetXDegrees = targetXDegrees;\n            this.targetYDegrees = targetYDegrees;\n            this.ta = ta;\n        }\n\n        /** Returns the AprilTag / fiducial ID."
+      },
+      {
+        "name": "getTargetXDegrees",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the horizontal offset to the target in degrees. Negative is left."
+      },
+      {
+        "name": "getTargetYDegrees",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the vertical offset to the target in degrees. Negative is down."
+      },
+      {
+        "name": "getTargetArea",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the target area as a percentage of the image (0.0–100.0)."
+      },
+      {
+        "name": "ColorResult",
+        "returnType": "public",
+        "params": [
+          {
+            "type": "double",
+            "name": "targetXDegrees"
+          },
+          {
+            "type": "double",
+            "name": "targetYDegrees"
+          },
+          {
+            "type": "double",
+            "name": "ta"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "getTargetXDegrees",
+        "returnType": "double",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "getTargetYDegrees",
+        "returnType": "double",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "getTargetArea",
+        "returnType": "double",
+        "params": [],
+        "doc": ""
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "Limelight3A": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "start",
+        "returnType": "void",
+        "params": [],
+        "doc": "Stub for the FTC SDK Limelight3A class.\nProvides access to the Limelight 3A vision coprocessor via I2C.\n\n<p>In the sandbox, pre-seed a result via {"
+      },
+      {
+        "name": "stop",
+        "returnType": "void",
+        "params": [],
+        "doc": "Pauses the Limelight to save resources."
+      },
+      {
+        "name": "pipelineSwitch",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "int",
+            "name": "pipelineIndex"
+          }
+        ],
+        "doc": "Switches to the specified pipeline index (0–9)."
+      },
+      {
+        "name": "getCurrentPipelineIndex",
+        "returnType": "int",
+        "params": [],
+        "doc": "Returns the currently active pipeline index."
+      },
+      {
+        "name": "isRunning",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns true if the Limelight is currently streaming."
+      },
+      {
+        "name": "getLatestResult",
+        "returnType": "LLResult",
+        "params": [],
+        "doc": "Returns the most recent result from the Limelight, or null if\nthe Limelight is not running or no frame has been received."
+      },
+      {
+        "name": "setLatestResult",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "LLResult",
+            "name": "result"
+          }
+        ],
+        "doc": "Sandbox helper: pre-seed the result that getLatestResult() will return."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
   "RevHubOrientationOnRobot": {
     "kind": "class",
     "parents": [],
@@ -192,6 +393,12 @@
         "returnType": "boolean",
         "params": [],
         "doc": "Returns whether the OpMode is active (started and not stop-requested).\nIn this mock, it also enforces a maximum loop count to prevent infinite loops\nin tests."
+      },
+      {
+        "name": "opModeInInit",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns whether the OpMode is currently in the init phase\n(after INIT pressed, before START pressed)."
       },
       {
         "name": "isStarted",
@@ -295,6 +502,23 @@
         "doc": "Resets the runtime clock to zero."
       },
       {
+        "name": "terminateOpModeNow",
+        "returnType": "void",
+        "params": [],
+        "doc": "Immediately terminates the OpMode.\nIn this stub, throws a RuntimeException to halt execution."
+      },
+      {
+        "name": "updateTelemetry",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "Telemetry",
+            "name": "telemetry"
+          }
+        ],
+        "doc": "Sends telemetry data to the Driver Station."
+      },
+      {
         "name": "simulateLifecycle",
         "returnType": "void",
         "params": [
@@ -345,43 +569,10 @@
   },
   "CRServo": {
     "kind": "interface",
-    "parents": [],
-    "methods": [
-      {
-        "name": "setPower",
-        "returnType": "void",
-        "params": [
-          {
-            "type": "double",
-            "name": "power"
-          }
-        ],
-        "doc": "Stub for the FTC SDK CRServo interface.\nControls a continuous rotation servo.\n/\npublic interface CRServo {\n\n    /**\nSets the power of the continuous rotation servo."
-      },
-      {
-        "name": "getPower",
-        "returnType": "double",
-        "params": [],
-        "doc": "Returns the current power of the continuous rotation servo."
-      },
-      {
-        "name": "setDirection",
-        "returnType": "void",
-        "params": [
-          {
-            "type": "DcMotorSimple.Direction",
-            "name": "direction"
-          }
-        ],
-        "doc": "Sets the logical direction of the servo."
-      },
-      {
-        "name": "getDirection",
-        "returnType": "DcMotorSimple.Direction",
-        "params": [],
-        "doc": "Returns the current logical direction of the servo."
-      }
+    "parents": [
+      "DcMotorSimple"
     ],
+    "methods": [],
     "fields": [],
     "enums": {}
   },
@@ -749,119 +940,50 @@
     "kind": "class",
     "parents": [],
     "methods": [],
-    "fields": [
+    "fields": [],
+    "enums": {}
+  },
+  "HardwareDevice": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
       {
-        "name": "left_stick_x",
-        "type": "float",
-        "doc": "Stub for the FTC SDK Gamepad class.\nRepresents a physical gamepad controller with sticks, buttons, and triggers.\n\n<p>All fields are public and mutable, matching the real FTC SDK behavior.\nFor testing, set fields directly before calling the user's code.\n/\npublic class Gamepad {\n\n    // Analog sticks\n    /** Left stick horizontal axis. Range: [-1.0, 1.0], left is negative."
+        "name": "getDeviceName",
+        "returnType": "String",
+        "params": [],
+        "doc": "Stub for the FTC SDK HardwareDevice interface.\nBase interface for all hardware devices accessible through HardwareMap.\n/\npublic interface HardwareDevice {\n    /** Returns a short human-readable name for this device type."
       },
       {
-        "name": "left_stick_y",
-        "type": "float",
-        "doc": "Left stick vertical axis. Range: [-1.0, 1.0], up is negative."
+        "name": "getManufacturer",
+        "returnType": "String",
+        "params": [],
+        "doc": "Returns a string describing the manufacturer of this device."
       },
       {
-        "name": "right_stick_x",
-        "type": "float",
-        "doc": "Right stick horizontal axis. Range: [-1.0, 1.0], left is negative."
-      },
-      {
-        "name": "right_stick_y",
-        "type": "float",
-        "doc": "Right stick vertical axis. Range: [-1.0, 1.0], up is negative."
-      },
-      {
-        "name": "a",
-        "type": "boolean",
-        "doc": "A button (bottom)."
-      },
-      {
-        "name": "b",
-        "type": "boolean",
-        "doc": "B button (right)."
-      },
-      {
-        "name": "x",
-        "type": "boolean",
-        "doc": "X button (left)."
-      },
-      {
-        "name": "y",
-        "type": "boolean",
-        "doc": "Y button (top)."
-      },
-      {
-        "name": "dpad_up",
-        "type": "boolean",
-        "doc": "D-pad up."
-      },
-      {
-        "name": "dpad_down",
-        "type": "boolean",
-        "doc": "D-pad down."
-      },
-      {
-        "name": "dpad_left",
-        "type": "boolean",
-        "doc": "D-pad left."
-      },
-      {
-        "name": "dpad_right",
-        "type": "boolean",
-        "doc": "D-pad right."
-      },
-      {
-        "name": "left_bumper",
-        "type": "boolean",
-        "doc": "Left bumper."
-      },
-      {
-        "name": "right_bumper",
-        "type": "boolean",
-        "doc": "Right bumper."
-      },
-      {
-        "name": "left_trigger",
-        "type": "float",
-        "doc": "Left trigger. Range: [0.0, 1.0]."
-      },
-      {
-        "name": "right_trigger",
-        "type": "float",
-        "doc": "Right trigger. Range: [0.0, 1.0]."
-      },
-      {
-        "name": "left_stick_button",
-        "type": "boolean",
-        "doc": "Left stick button (pressing the stick)."
-      },
-      {
-        "name": "right_stick_button",
-        "type": "boolean",
-        "doc": "Right stick button (pressing the stick)."
-      },
-      {
-        "name": "guide",
-        "type": "boolean",
-        "doc": "Guide / home button."
-      },
-      {
-        "name": "start",
-        "type": "boolean",
-        "doc": "Start button."
-      },
-      {
-        "name": "back",
-        "type": "boolean",
-        "doc": "Back button."
+        "name": "close",
+        "returnType": "void",
+        "params": [],
+        "doc": "Closes the device and releases any resources it holds."
       }
     ],
+    "fields": [],
     "enums": {}
   },
   "HardwareMap": {
     "kind": "class",
     "parents": [],
     "methods": [
+      {
+        "name": "registerVoltageSensor",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "VoltageSensor",
+            "name": "sensor"
+          }
+        ],
+        "doc": "Stub for the FTC SDK HardwareMap class.\nProvides typed access to hardware devices by name, backed by a simple HashMap.\n\n<p>Usage in tests:\n<pre>\n  HardwareMap hwMap = new HardwareMap();\n  DcMotorImpl motor = new DcMotorImpl();\n  hwMap.registerDevice(\"leftMotor\", motor);\n\n  DcMotor retrieved = hwMap.get(DcMotor.class, \"leftMotor\");\n  // retrieved == motor\n</pre>\n/\npublic class HardwareMap {\n\n    /** Internal storage mapping device names to device objects. */\n    private final Map<String, Object> deviceMap = new HashMap<>();\n\n    /**\nIterable collection of voltage sensors, mirroring the real SDK's\n{"
+      },
       {
         "name": "get",
         "returnType": "T",
@@ -875,7 +997,7 @@
             "name": "deviceName"
           }
         ],
-        "doc": "Stub for the FTC SDK HardwareMap class.\nProvides typed access to hardware devices by name, backed by a simple HashMap.\n\n<p>Usage in tests:\n<pre>\n  HardwareMap hwMap = new HardwareMap();\n  DcMotorImpl motor = new DcMotorImpl();\n  hwMap.registerDevice(\"leftMotor\", motor);\n\n  DcMotor retrieved = hwMap.get(DcMotor.class, \"leftMotor\");\n  // retrieved == motor\n</pre>\n/\npublic class HardwareMap {\n\n    /** Internal storage mapping device names to device objects. */\n    private final Map<String, Object> deviceMap = new HashMap<>();\n\n    public HardwareMap() {\n        // Default constructor\n    }\n\n    /**\nRetrieves a hardware device by type and name."
+        "doc": "Retrieves a hardware device by type and name."
       },
       {
         "name": "size",
@@ -884,7 +1006,13 @@
         "doc": "Returns the number of registered devices."
       }
     ],
-    "fields": [],
+    "fields": [
+      {
+        "name": "voltageSensor",
+        "type": "VoltageSensorList",
+        "doc": "Stub for the FTC SDK HardwareMap class.\nProvides typed access to hardware devices by name, backed by a simple HashMap.\n\n<p>Usage in tests:\n<pre>\n  HardwareMap hwMap = new HardwareMap();\n  DcMotorImpl motor = new DcMotorImpl();\n  hwMap.registerDevice(\"leftMotor\", motor);\n\n  DcMotor retrieved = hwMap.get(DcMotor.class, \"leftMotor\");\n  // retrieved == motor\n</pre>\n/\npublic class HardwareMap {\n\n    /** Internal storage mapping device names to device objects. */\n    private final Map<String, Object> deviceMap = new HashMap<>();\n\n    /**\nIterable collection of voltage sensors, mirroring the real SDK's\n{"
+      }
+    ],
     "enums": {}
   },
   "IMU": {
@@ -985,7 +1113,7 @@
             "name": "position"
           }
         ],
-        "doc": "Stub for the FTC SDK Servo interface.\nControls a standard hobby servo.\n/\npublic interface Servo {\n\n    enum Direction {\n        FORWARD,\n        REVERSE\n    }\n\n    /**\nSets the servo position."
+        "doc": "Stub for the FTC SDK Servo interface.\nControls a standard hobby servo.\n/\npublic interface Servo {\n\n    double MIN_POSITION = 0.0;\n    double MAX_POSITION = 1.0;\n\n    enum Direction {\n        FORWARD,\n        REVERSE\n    }\n\n    /**\nSets the servo position."
       },
       {
         "name": "getPosition",
@@ -1056,10 +1184,107 @@
     "fields": [],
     "enums": {}
   },
+  "VoltageSensor": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
+      {
+        "name": "getVoltage",
+        "returnType": "double",
+        "params": [],
+        "doc": "Stub for the FTC SDK VoltageSensor interface.\nRepresents a hardware device that can measure voltage (e.g., the Control Hub battery).\n/\npublic interface VoltageSensor {\n    /**\nReturns the current measured voltage."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "VoltageSensorImpl": {
+    "kind": "class",
+    "parents": [
+      "VoltageSensor"
+    ],
+    "methods": [
+      {
+        "name": "setVoltage",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "voltage"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "getVoltage",
+        "returnType": "double",
+        "params": [],
+        "doc": ""
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "WebcamName": {
+    "kind": "interface",
+    "parents": [
+      "HardwareDevice"
+    ],
+    "methods": [
+      {
+        "name": "isAttached",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Stub for the FTC SDK WebcamName interface.\nRepresents a USB webcam attached to the Control Hub or phone.\n/\npublic interface WebcamName extends HardwareDevice {\n    /** Returns true if a webcam with this name is currently attached."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "WebcamNameImpl": {
+    "kind": "class",
+    "parents": [
+      "WebcamName"
+    ],
+    "methods": [
+      {
+        "name": "isAttached",
+        "returnType": "Override public boolean",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "getDeviceName",
+        "returnType": "Override public String",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "getManufacturer",
+        "returnType": "Override public String",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "close",
+        "returnType": "Override public void",
+        "params": [],
+        "doc": ""
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
   "ElapsedTime": {
     "kind": "class",
     "parents": [],
     "methods": [
+      {
+        "name": "time",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the elapsed time in the units of this timer's resolution."
+      },
       {
         "name": "seconds",
         "returnType": "double",
@@ -1073,14 +1298,42 @@
         "doc": "Returns the elapsed time in milliseconds."
       },
       {
-        "name": "time",
+        "name": "nanoseconds",
+        "returnType": "long",
+        "params": [],
+        "doc": "Returns the elapsed time in nanoseconds."
+      },
+      {
+        "name": "startTime",
         "returnType": "double",
         "params": [],
-        "doc": "Returns the elapsed time in seconds. Alias for {"
+        "doc": "Returns the start time in nanoseconds (as returned by System.nanoTime())."
+      },
+      {
+        "name": "getResolution",
+        "returnType": "Resolution",
+        "params": [],
+        "doc": "Returns the resolution of this timer."
       }
     ],
-    "fields": [],
-    "enums": {}
+    "fields": [
+      {
+        "name": "SECOND_IN_NANO",
+        "type": "long",
+        "doc": ""
+      },
+      {
+        "name": "MILLIS_IN_NANO",
+        "type": "long",
+        "doc": ""
+      }
+    ],
+    "enums": {
+      "Resolution": [
+        "SECONDS",
+        "MILLISECONDS"
+      ]
+    }
   },
   "Telemetry": {
     "kind": "interface",
@@ -1159,25 +1412,6 @@
           }
         ],
         "doc": "Speaks a text string through the Driver Station."
-      },
-      {
-        "name": "speak",
-        "returnType": "void",
-        "params": [
-          {
-            "type": "String",
-            "name": "text"
-          },
-          {
-            "type": "String",
-            "name": "languageCode"
-          },
-          {
-            "type": "String",
-            "name": "countryCode"
-          }
-        ],
-        "doc": "Speaks a text string with language and country options."
       },
       {
         "name": "setAutoClear",
@@ -1335,6 +1569,195 @@
           }
         ],
         "doc": "Returns the roll angle in the specified unit."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "VisionPortal": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "getPortalState",
+        "returnType": "PortalState",
+        "params": [],
+        "doc": "Stub for the FTC SDK VisionPortal.\nManages a camera stream and routes frames to one or more vision processors.\n\n<p>Typical usage:\n<pre>\n  AprilTagProcessor aprilTag = new AprilTagProcessor.Builder().build();\n\n  VisionPortal portal = new VisionPortal.Builder()\n      .setCamera(hardwareMap.get(WebcamName.class, \"Webcam 1\"))\n      .addProcessor(aprilTag)\n      .build();\n</pre>\n/\npublic class VisionPortal {\n\n    /** Represents the operational state of the portal. */\n    public enum PortalState {\n        /** Portal is actively streaming and processing frames. */\n        RUNNING,\n        /** Portal has been stopped but can be restarted. */\n        STOPPED,\n        /** Portal has been closed and cannot be restarted. */\n        CAMERA_DEVICE_CLOSED,\n        /** Portal encountered an error. */\n        ERROR\n    }\n\n    private PortalState state = PortalState.RUNNING;\n    private boolean built = false;\n\n    private VisionPortal() {\n        this.built = true;\n    }\n\n    /** Returns the current state of the camera portal."
+      },
+      {
+        "name": "isStreaming",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns true if the portal is actively streaming."
+      },
+      {
+        "name": "stopStreaming",
+        "returnType": "void",
+        "params": [],
+        "doc": "Stops the camera stream to save resources. Can be restarted with resumeStreaming()."
+      },
+      {
+        "name": "resumeStreaming",
+        "returnType": "void",
+        "params": [],
+        "doc": "Resumes streaming after stopStreaming()."
+      },
+      {
+        "name": "close",
+        "returnType": "void",
+        "params": [],
+        "doc": "Permanently closes the portal and releases camera resources."
+      },
+      {
+        "name": "isBuilt",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns true if the portal was successfully built."
+      },
+      {
+        "name": "setCamera",
+        "returnType": "Builder",
+        "params": [
+          {
+            "type": "WebcamName",
+            "name": "cameraName"
+          }
+        ],
+        "doc": "Builder for VisionPortal. */\n    public static class Builder {\n        private WebcamName camera = null;\n        private boolean autoStartStreaming = true;\n        private int[] resolution = {640, 480};\n\n        /**\nSets the camera to use (a USB webcam)."
+      },
+      {
+        "name": "addProcessor",
+        "returnType": "Builder",
+        "params": [
+          {
+            "type": "Object",
+            "name": "processor"
+          }
+        ],
+        "doc": "Adds a vision processor to receive camera frames."
+      },
+      {
+        "name": "setAutoStartStreaming",
+        "returnType": "Builder",
+        "params": [
+          {
+            "type": "boolean",
+            "name": "autoStart"
+          }
+        ],
+        "doc": "Sets whether streaming starts automatically on build(). Default true."
+      },
+      {
+        "name": "setCameraResolution",
+        "returnType": "Builder",
+        "params": [
+          {
+            "type": "int",
+            "name": "widthPx"
+          },
+          {
+            "type": "int",
+            "name": "heightPx"
+          }
+        ],
+        "doc": "Sets the camera resolution."
+      },
+      {
+        "name": "build",
+        "returnType": "VisionPortal",
+        "params": [],
+        "doc": "Builds and returns a live VisionPortal."
+      }
+    ],
+    "fields": [],
+    "enums": {
+      "PortalState": [
+        "RUNNING",
+        "STOPPED",
+        "CAMERA_DEVICE_CLOSED",
+        "ERROR"
+      ]
+    }
+  },
+  "AprilTagDetection": {
+    "kind": "class",
+    "parents": [],
+    "methods": [],
+    "fields": [],
+    "enums": {}
+  },
+  "AprilTagPoseFtc": {
+    "kind": "class",
+    "parents": [],
+    "methods": [],
+    "fields": [],
+    "enums": {}
+  },
+  "AprilTagProcessor": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "getDetections",
+        "returnType": "List<AprilTagDetection>",
+        "params": [],
+        "doc": "Stub for the FTC SDK AprilTagProcessor.\nProcesses camera frames to detect AprilTags.\n\n<p>In the sandbox, pre-seed detections via {"
+      },
+      {
+        "name": "getDetectionCount",
+        "returnType": "int",
+        "params": [],
+        "doc": "Returns the number of detections from the most recent frame."
+      },
+      {
+        "name": "addDetection",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "AprilTagDetection",
+            "name": "detection"
+          }
+        ],
+        "doc": "Sandbox helper: pre-seed a detection so getDetections() returns it."
+      },
+      {
+        "name": "setDrawAxes",
+        "returnType": "Builder",
+        "params": [
+          {
+            "type": "boolean",
+            "name": "draw"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "setDrawCubeProjection",
+        "returnType": "Builder",
+        "params": [
+          {
+            "type": "boolean",
+            "name": "draw"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "setDrawTagOutline",
+        "returnType": "Builder",
+        "params": [
+          {
+            "type": "boolean",
+            "name": "draw"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "build",
+        "returnType": "AprilTagProcessor",
+        "params": [],
+        "doc": ""
       }
     ],
     "fields": [],

@@ -1,0 +1,5 @@
+{
+  "title": "Driving with the IMU",
+  "order": 5,
+  "description": "Use the IMU to hold headings and enable field-centric driving."
+}

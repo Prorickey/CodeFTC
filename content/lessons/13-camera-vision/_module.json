@@ -1,5 +1,5 @@
 {
   "title": "Camera Vision",
-  "order": 6,
+  "order": 13,
   "description": "Connect cameras, detect AprilTags, and use the Limelight 3A vision coprocessor."
 }

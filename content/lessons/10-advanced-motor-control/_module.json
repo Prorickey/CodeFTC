@@ -1,0 +1,5 @@
+{
+  "title": "Advanced Motor Control",
+  "order": 10,
+  "description": "Voltage normalization for consistent power and DcMotorEx velocity control."
+}

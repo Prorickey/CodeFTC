@@ -1,5 +1,0 @@
-{
-  "title": "Command-Based Systems",
-  "order": 8,
-  "description": "Structure complex robot behavior using reusable, composable commands."
-}

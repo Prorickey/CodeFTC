@@ -1,0 +1,5 @@
+{
+  "title": "Code Architecture",
+  "order": 11,
+  "description": "Structure your robot code with the OpMode lifecycle, non-blocking patterns, and command-based programming."
+}
