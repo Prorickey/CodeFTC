@@ -1,0 +1,1343 @@
+{
+  "TestBase": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "check",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "String",
+            "name": "name"
+          },
+          {
+            "type": "boolean",
+            "name": "condition"
+          },
+          {
+            "type": "String",
+            "name": "passMsg"
+          },
+          {
+            "type": "String",
+            "name": "failMsg"
+          }
+        ],
+        "doc": "Helper base class for all lesson Test.java files.\nAccumulates test results and prints the JSON output expected by the grader.\n\nUsage:\n  TestBase.assertNear(\"Motor power ≈ 0.8\", motor.getPower(), 0.8, 0.01);\n  TestBase.assertContains(\"Telemetry shows heading\", log, \"Heading\");\n  TestBase.printResults();\n/\npublic class TestBase {\n\n    private static final List<String> results = new ArrayList<>();\n    private static boolean allPassed = true;\n\n    /** Core assertion — all others delegate here."
+      },
+      {
+        "name": "assertNear",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "String",
+            "name": "name"
+          },
+          {
+            "type": "double",
+            "name": "actual"
+          },
+          {
+            "type": "double",
+            "name": "expected"
+          },
+          {
+            "type": "double",
+            "name": "tol"
+          }
+        ],
+        "doc": "Assert two doubles are within tolerance of each other."
+      },
+      {
+        "name": "assertEqual",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "String",
+            "name": "name"
+          },
+          {
+            "type": "String",
+            "name": "actual"
+          },
+          {
+            "type": "String",
+            "name": "expected"
+          }
+        ],
+        "doc": "Assert two strings are equal."
+      },
+      {
+        "name": "assertTrue",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "String",
+            "name": "name"
+          },
+          {
+            "type": "boolean",
+            "name": "cond"
+          },
+          {
+            "type": "String",
+            "name": "failMsg"
+          }
+        ],
+        "doc": "Assert a boolean condition."
+      },
+      {
+        "name": "assertContains",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "String",
+            "name": "name"
+          },
+          {
+            "type": "List<String>",
+            "name": "log"
+          },
+          {
+            "type": "String",
+            "name": "sub"
+          }
+        ],
+        "doc": "Assert a telemetry/call log contains the given substring."
+      },
+      {
+        "name": "printResults",
+        "returnType": "void",
+        "params": [],
+        "doc": "Print the final JSON result to stdout (call exactly once, at the end of main)."
+      },
+      {
+        "name": "esc",
+        "returnType": "private static String",
+        "params": [
+          {
+            "type": "String",
+            "name": "s"
+          }
+        ],
+        "doc": ""
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "RevHubOrientationOnRobot": {
+    "kind": "class",
+    "parents": [],
+    "methods": [],
+    "fields": [],
+    "enums": {
+      "LogoFacingDirection": [
+        "UP",
+        "DOWN",
+        "FORWARD",
+        "BACKWARD",
+        "LEFT",
+        "RIGHT"
+      ],
+      "UsbFacingDirection": [
+        "UP",
+        "DOWN",
+        "FORWARD",
+        "BACKWARD",
+        "LEFT",
+        "RIGHT"
+      ]
+    }
+  },
+  "MyAuto": {
+    "kind": "class",
+    "parents": [
+      "LinearOpMode"
+    ],
+    "methods": [],
+    "fields": [],
+    "enums": {}
+  },
+  "LinearOpMode": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "runOpMode",
+        "returnType": "void",
+        "params": [],
+        "doc": "Stub for the FTC SDK LinearOpMode abstract class.\nThis is the base class for linear (sequential) OpModes.\n\n<p>Subclasses must implement {"
+      },
+      {
+        "name": "waitForStart",
+        "returnType": "void",
+        "params": [],
+        "doc": "Pauses the linear OpMode until START is pressed on the Driver Station.\nIn this mock, it simply records the call."
+      },
+      {
+        "name": "sleep",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "long",
+            "name": "milliseconds"
+          }
+        ],
+        "doc": "Sleeps for the given number of milliseconds.\nIn this mock, it records the call but does NOT actually sleep\n(to keep tests fast)."
+      },
+      {
+        "name": "opModeIsActive",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns whether the OpMode is active (started and not stop-requested).\nIn this mock, it also enforces a maximum loop count to prevent infinite loops\nin tests."
+      },
+      {
+        "name": "isStarted",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns whether the OpMode has been started."
+      },
+      {
+        "name": "isStopRequested",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns whether a stop has been requested."
+      },
+      {
+        "name": "idle",
+        "returnType": "void",
+        "params": [],
+        "doc": "Allows other threads to run. In this mock, it simply records the call."
+      },
+      {
+        "name": "getRuntime",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the time in seconds since the OpMode was started.\nIn this mock, returns 0.0."
+      },
+      {
+        "name": "resetRuntime",
+        "returnType": "void",
+        "params": [],
+        "doc": "Resets the runtime clock."
+      }
+    ],
+    "fields": [
+      {
+        "name": "hardwareMap",
+        "type": "HardwareMap",
+        "doc": "Stub for the FTC SDK LinearOpMode abstract class.\nThis is the base class for linear (sequential) OpModes.\n\n<p>Subclasses must implement {"
+      },
+      {
+        "name": "telemetry",
+        "type": "Telemetry",
+        "doc": "Telemetry for sending data to the Driver Station."
+      },
+      {
+        "name": "gamepad1",
+        "type": "Gamepad",
+        "doc": "Gamepad 1 (typically the driver)."
+      },
+      {
+        "name": "gamepad2",
+        "type": "Gamepad",
+        "doc": "Gamepad 2 (typically the operator)."
+      }
+    ],
+    "enums": {}
+  },
+  "OpMode": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "init",
+        "returnType": "void",
+        "params": [],
+        "doc": "Stub for the FTC SDK OpMode abstract class.\nThis is the base class for iterative (non-linear) OpModes.\n\n<p>Subclasses must implement {"
+      },
+      {
+        "name": "init_loop",
+        "returnType": "void",
+        "params": [],
+        "doc": "Called repeatedly while waiting for START after init.\nOverride to add initialization loop behavior."
+      },
+      {
+        "name": "start",
+        "returnType": "void",
+        "params": [],
+        "doc": "Called once when the START button is pressed.\nOverride to add start behavior."
+      },
+      {
+        "name": "loop",
+        "returnType": "void",
+        "params": [],
+        "doc": "Called repeatedly while the OpMode is running.\nSubclasses must implement this."
+      },
+      {
+        "name": "stop",
+        "returnType": "void",
+        "params": [],
+        "doc": "Called once when the OpMode is stopped.\nOverride to add cleanup behavior."
+      },
+      {
+        "name": "getRuntime",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the time in seconds since the OpMode was started."
+      },
+      {
+        "name": "resetRuntime",
+        "returnType": "void",
+        "params": [],
+        "doc": "Resets the runtime clock to zero."
+      },
+      {
+        "name": "simulateLifecycle",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "int",
+            "name": "initLoopCount"
+          },
+          {
+            "type": "int",
+            "name": "mainLoopCount"
+          }
+        ],
+        "doc": "Simulates the full OpMode lifecycle for testing:\ninit() -> init_loop() (loopCount times) -> start() -> loop() (loopCount times) -> stop()"
+      }
+    ],
+    "fields": [
+      {
+        "name": "hardwareMap",
+        "type": "HardwareMap",
+        "doc": "Stub for the FTC SDK OpMode abstract class.\nThis is the base class for iterative (non-linear) OpModes.\n\n<p>Subclasses must implement {"
+      },
+      {
+        "name": "telemetry",
+        "type": "Telemetry",
+        "doc": "Telemetry for sending data to the Driver Station."
+      },
+      {
+        "name": "gamepad1",
+        "type": "Gamepad",
+        "doc": "Gamepad 1 (typically the driver)."
+      },
+      {
+        "name": "gamepad2",
+        "type": "Gamepad",
+        "doc": "Gamepad 2 (typically the operator)."
+      }
+    ],
+    "enums": {}
+  },
+  "MyTeleOp": {
+    "kind": "class",
+    "parents": [
+      "LinearOpMode"
+    ],
+    "methods": [],
+    "fields": [],
+    "enums": {}
+  },
+  "CRServo": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
+      {
+        "name": "setPower",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "power"
+          }
+        ],
+        "doc": "Stub for the FTC SDK CRServo interface.\nControls a continuous rotation servo.\n/\npublic interface CRServo {\n\n    /**\nSets the power of the continuous rotation servo."
+      },
+      {
+        "name": "getPower",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the current power of the continuous rotation servo."
+      },
+      {
+        "name": "setDirection",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "DcMotorSimple.Direction",
+            "name": "direction"
+          }
+        ],
+        "doc": "Sets the logical direction of the servo."
+      },
+      {
+        "name": "getDirection",
+        "returnType": "DcMotorSimple.Direction",
+        "params": [],
+        "doc": "Returns the current logical direction of the servo."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "CRServoImpl": {
+    "kind": "class",
+    "parents": [
+      "CRServo"
+    ],
+    "methods": [],
+    "fields": [],
+    "enums": {}
+  },
+  "DcMotor": {
+    "kind": "interface",
+    "parents": [
+      "DcMotorSimple"
+    ],
+    "methods": [
+      {
+        "name": "setZeroPowerBehavior",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "ZeroPowerBehavior",
+            "name": "behavior"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "getZeroPowerBehavior",
+        "returnType": "ZeroPowerBehavior",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "setMode",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "RunMode",
+            "name": "mode"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "getMode",
+        "returnType": "RunMode",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "getCurrentPosition",
+        "returnType": "int",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "setTargetPosition",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "int",
+            "name": "position"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "getTargetPosition",
+        "returnType": "int",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "isBusy",
+        "returnType": "boolean",
+        "params": [],
+        "doc": ""
+      }
+    ],
+    "fields": [],
+    "enums": {
+      "RunMode": [
+        "RUN_WITHOUT_ENCODER",
+        "RUN_USING_ENCODER",
+        "RUN_TO_POSITION",
+        "STOP_AND_RESET_ENCODER"
+      ],
+      "ZeroPowerBehavior": [
+        "UNKNOWN",
+        "BRAKE",
+        "FLOAT"
+      ]
+    }
+  },
+  "DcMotorEx": {
+    "kind": "interface",
+    "parents": [
+      "DcMotor"
+    ],
+    "methods": [
+      {
+        "name": "setVelocity",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "ticksPerSecond"
+          }
+        ],
+        "doc": "Stub for the FTC SDK DcMotorEx interface.\nExtends DcMotor with velocity control and other advanced features.\n/\npublic interface DcMotorEx extends DcMotor {\n\n    /**\nSets the motor velocity in encoder ticks per second.\nOnly meaningful in RUN_USING_ENCODER mode."
+      },
+      {
+        "name": "getVelocity",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the current motor velocity in encoder ticks per second."
+      },
+      {
+        "name": "setMotorEnable",
+        "returnType": "void",
+        "params": [],
+        "doc": "Enable the motor."
+      },
+      {
+        "name": "setMotorDisable",
+        "returnType": "void",
+        "params": [],
+        "doc": "Disable the motor."
+      },
+      {
+        "name": "isMotorEnabled",
+        "returnType": "boolean",
+        "params": [],
+        "doc": ""
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "DcMotorExImpl": {
+    "kind": "class",
+    "parents": [
+      "DcMotorImpl",
+      "DcMotorEx"
+    ],
+    "methods": [
+      {
+        "name": "setVelocity",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "ticksPerSecond"
+          }
+        ],
+        "doc": ""
+      },
+      {
+        "name": "getVelocity",
+        "returnType": "double",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "setMotorEnable",
+        "returnType": "void",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "setMotorDisable",
+        "returnType": "void",
+        "params": [],
+        "doc": ""
+      },
+      {
+        "name": "isMotorEnabled",
+        "returnType": "boolean",
+        "params": [],
+        "doc": ""
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "DcMotorImpl": {
+    "kind": "class",
+    "parents": [
+      "DcMotor"
+    ],
+    "methods": [
+      {
+        "name": "setCurrentPosition",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "int",
+            "name": "position"
+          }
+        ],
+        "doc": "Directly set the simulated encoder position (for test setup)."
+      },
+      {
+        "name": "setBusy",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "boolean",
+            "name": "busy"
+          }
+        ],
+        "doc": "Set whether the motor reports as busy (for test setup)."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "DcMotorSimple": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
+      {
+        "name": "setPower",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "power"
+          }
+        ],
+        "doc": "Stub for the FTC SDK DcMotorSimple interface.\nProvides basic motor control methods shared by all DC motor types.\n/\npublic interface DcMotorSimple {\n\n    enum Direction {\n        FORWARD,\n        REVERSE\n    }\n\n    /**\nSets the motor power."
+      },
+      {
+        "name": "getPower",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the current motor power."
+      },
+      {
+        "name": "setDirection",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "Direction",
+            "name": "direction"
+          }
+        ],
+        "doc": "Sets the logical direction of the motor."
+      },
+      {
+        "name": "getDirection",
+        "returnType": "Direction",
+        "params": [],
+        "doc": "Returns the current logical direction of the motor."
+      }
+    ],
+    "fields": [],
+    "enums": {
+      "Direction": [
+        "FORWARD",
+        "REVERSE"
+      ]
+    }
+  },
+  "DigitalChannel": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
+      {
+        "name": "getState",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Stub for the FTC SDK DigitalChannel interface.\nProvides access to digital I/O channels on the robot controller.\n/\npublic interface DigitalChannel {\n\n    enum Mode { INPUT, OUTPUT }\n\n    /**\nReturns the current state of the digital channel."
+      },
+      {
+        "name": "setState",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "boolean",
+            "name": "state"
+          }
+        ],
+        "doc": "Sets the state of the digital channel (only valid in OUTPUT mode)."
+      },
+      {
+        "name": "setMode",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "Mode",
+            "name": "mode"
+          }
+        ],
+        "doc": "Sets the mode of the digital channel."
+      },
+      {
+        "name": "getMode",
+        "returnType": "Mode",
+        "params": [],
+        "doc": "Returns the current mode of the digital channel."
+      }
+    ],
+    "fields": [],
+    "enums": {
+      "Mode": [
+        "INPUT",
+        "OUTPUT"
+      ]
+    }
+  },
+  "DigitalChannelImpl": {
+    "kind": "class",
+    "parents": [
+      "DigitalChannel"
+    ],
+    "methods": [],
+    "fields": [],
+    "enums": {}
+  },
+  "DistanceSensor": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
+      {
+        "name": "getDistance",
+        "returnType": "double",
+        "params": [
+          {
+            "type": "DistanceUnit",
+            "name": "unit"
+          }
+        ],
+        "doc": "Stub for the FTC SDK DistanceSensor interface.\nProvides distance measurement from a sensor.\n/\npublic interface DistanceSensor {\n\n    /**\nReturns the distance measured by the sensor in the specified unit."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "DistanceSensorImpl": {
+    "kind": "class",
+    "parents": [
+      "DistanceSensor"
+    ],
+    "methods": [
+      {
+        "name": "setDistanceCm",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "cm"
+          }
+        ],
+        "doc": "Directly set the simulated distance in centimeters (for test setup)."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "Gamepad": {
+    "kind": "class",
+    "parents": [],
+    "methods": [],
+    "fields": [
+      {
+        "name": "left_stick_x",
+        "type": "float",
+        "doc": "Stub for the FTC SDK Gamepad class.\nRepresents a physical gamepad controller with sticks, buttons, and triggers.\n\n<p>All fields are public and mutable, matching the real FTC SDK behavior.\nFor testing, set fields directly before calling the user's code.\n/\npublic class Gamepad {\n\n    // Analog sticks\n    /** Left stick horizontal axis. Range: [-1.0, 1.0], left is negative."
+      },
+      {
+        "name": "left_stick_y",
+        "type": "float",
+        "doc": "Left stick vertical axis. Range: [-1.0, 1.0], up is negative."
+      },
+      {
+        "name": "right_stick_x",
+        "type": "float",
+        "doc": "Right stick horizontal axis. Range: [-1.0, 1.0], left is negative."
+      },
+      {
+        "name": "right_stick_y",
+        "type": "float",
+        "doc": "Right stick vertical axis. Range: [-1.0, 1.0], up is negative."
+      },
+      {
+        "name": "a",
+        "type": "boolean",
+        "doc": "A button (bottom)."
+      },
+      {
+        "name": "b",
+        "type": "boolean",
+        "doc": "B button (right)."
+      },
+      {
+        "name": "x",
+        "type": "boolean",
+        "doc": "X button (left)."
+      },
+      {
+        "name": "y",
+        "type": "boolean",
+        "doc": "Y button (top)."
+      },
+      {
+        "name": "dpad_up",
+        "type": "boolean",
+        "doc": "D-pad up."
+      },
+      {
+        "name": "dpad_down",
+        "type": "boolean",
+        "doc": "D-pad down."
+      },
+      {
+        "name": "dpad_left",
+        "type": "boolean",
+        "doc": "D-pad left."
+      },
+      {
+        "name": "dpad_right",
+        "type": "boolean",
+        "doc": "D-pad right."
+      },
+      {
+        "name": "left_bumper",
+        "type": "boolean",
+        "doc": "Left bumper."
+      },
+      {
+        "name": "right_bumper",
+        "type": "boolean",
+        "doc": "Right bumper."
+      },
+      {
+        "name": "left_trigger",
+        "type": "float",
+        "doc": "Left trigger. Range: [0.0, 1.0]."
+      },
+      {
+        "name": "right_trigger",
+        "type": "float",
+        "doc": "Right trigger. Range: [0.0, 1.0]."
+      },
+      {
+        "name": "left_stick_button",
+        "type": "boolean",
+        "doc": "Left stick button (pressing the stick)."
+      },
+      {
+        "name": "right_stick_button",
+        "type": "boolean",
+        "doc": "Right stick button (pressing the stick)."
+      },
+      {
+        "name": "guide",
+        "type": "boolean",
+        "doc": "Guide / home button."
+      },
+      {
+        "name": "start",
+        "type": "boolean",
+        "doc": "Start button."
+      },
+      {
+        "name": "back",
+        "type": "boolean",
+        "doc": "Back button."
+      }
+    ],
+    "enums": {}
+  },
+  "HardwareMap": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "get",
+        "returnType": "T",
+        "params": [
+          {
+            "type": "Class<? extends T>",
+            "name": "classOrInterface"
+          },
+          {
+            "type": "String",
+            "name": "deviceName"
+          }
+        ],
+        "doc": "Stub for the FTC SDK HardwareMap class.\nProvides typed access to hardware devices by name, backed by a simple HashMap.\n\n<p>Usage in tests:\n<pre>\n  HardwareMap hwMap = new HardwareMap();\n  DcMotorImpl motor = new DcMotorImpl();\n  hwMap.registerDevice(\"leftMotor\", motor);\n\n  DcMotor retrieved = hwMap.get(DcMotor.class, \"leftMotor\");\n  // retrieved == motor\n</pre>\n/\npublic class HardwareMap {\n\n    /** Internal storage mapping device names to device objects. */\n    private final Map<String, Object> deviceMap = new HashMap<>();\n\n    public HardwareMap() {\n        // Default constructor\n    }\n\n    /**\nRetrieves a hardware device by type and name."
+      },
+      {
+        "name": "size",
+        "returnType": "int",
+        "params": [],
+        "doc": "Returns the number of registered devices."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "IMU": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
+      {
+        "name": "initialize",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "Parameters",
+            "name": "parameters"
+          }
+        ],
+        "doc": "Stub for the FTC SDK IMU interface.\nProvides access to the inertial measurement unit on the REV Control Hub.\n/\npublic interface IMU {\n\n    /**\nInitializes the IMU with the given parameters."
+      },
+      {
+        "name": "resetYaw",
+        "returnType": "void",
+        "params": [],
+        "doc": "Resets the yaw angle to zero."
+      },
+      {
+        "name": "getRobotYawPitchRollAngles",
+        "returnType": "YawPitchRollAngles",
+        "params": [],
+        "doc": "Returns the current yaw, pitch, and roll angles."
+      },
+      {
+        "name": "Parameters",
+        "returnType": "public",
+        "params": [
+          {
+            "type": "RevHubOrientationOnRobot",
+            "name": "orientationOnRobot"
+          }
+        ],
+        "doc": "Parameters for initializing the IMU.\n/\n    class Parameters {\n        /**\nCreates IMU parameters with the specified hub orientation."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "IMUImpl": {
+    "kind": "class",
+    "parents": [
+      "IMU"
+    ],
+    "methods": [
+      {
+        "name": "setYaw",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "yawDegrees"
+          }
+        ],
+        "doc": "Set the simulated yaw angle in degrees (for test setup)."
+      },
+      {
+        "name": "setPitch",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "pitchDegrees"
+          }
+        ],
+        "doc": "Set the simulated pitch angle in degrees (for test setup)."
+      },
+      {
+        "name": "setRoll",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "rollDegrees"
+          }
+        ],
+        "doc": "Set the simulated roll angle in degrees (for test setup)."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "Servo": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
+      {
+        "name": "setPosition",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "position"
+          }
+        ],
+        "doc": "Stub for the FTC SDK Servo interface.\nControls a standard hobby servo.\n/\npublic interface Servo {\n\n    enum Direction {\n        FORWARD,\n        REVERSE\n    }\n\n    /**\nSets the servo position."
+      },
+      {
+        "name": "getPosition",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the current servo position."
+      },
+      {
+        "name": "setDirection",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "Direction",
+            "name": "direction"
+          }
+        ],
+        "doc": "Sets the logical direction of the servo."
+      },
+      {
+        "name": "getDirection",
+        "returnType": "Direction",
+        "params": [],
+        "doc": "Returns the current logical direction of the servo."
+      },
+      {
+        "name": "scaleRange",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "double",
+            "name": "min"
+          },
+          {
+            "type": "double",
+            "name": "max"
+          }
+        ],
+        "doc": "Scales the range of the servo."
+      }
+    ],
+    "fields": [],
+    "enums": {
+      "Direction": [
+        "FORWARD",
+        "REVERSE"
+      ]
+    }
+  },
+  "ServoImpl": {
+    "kind": "class",
+    "parents": [
+      "Servo"
+    ],
+    "methods": [
+      {
+        "name": "getScaleMin",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the current scale minimum."
+      },
+      {
+        "name": "getScaleMax",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the current scale maximum."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "ElapsedTime": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "seconds",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the elapsed time in seconds."
+      },
+      {
+        "name": "milliseconds",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the elapsed time in milliseconds."
+      },
+      {
+        "name": "time",
+        "returnType": "double",
+        "params": [],
+        "doc": "Returns the elapsed time in seconds. Alias for {"
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "Telemetry": {
+    "kind": "interface",
+    "parents": [],
+    "methods": [
+      {
+        "name": "addData",
+        "returnType": "Object",
+        "params": [
+          {
+            "type": "String",
+            "name": "caption"
+          },
+          {
+            "type": "Object",
+            "name": "value"
+          }
+        ],
+        "doc": "Stub for the FTC SDK Telemetry interface.\nProvides methods to send data to the Driver Station for display.\n/\npublic interface Telemetry {\n\n    /**\nAdds a data item with a caption and value."
+      },
+      {
+        "name": "addData",
+        "returnType": "Object",
+        "params": [
+          {
+            "type": "String",
+            "name": "caption"
+          },
+          {
+            "type": "String",
+            "name": "format"
+          },
+          {
+            "type": "Object...",
+            "name": "args"
+          }
+        ],
+        "doc": "Adds a data item with a caption and formatted string value."
+      },
+      {
+        "name": "addLine",
+        "returnType": "Object",
+        "params": [
+          {
+            "type": "String",
+            "name": "text"
+          }
+        ],
+        "doc": "Adds a line of text to the telemetry."
+      },
+      {
+        "name": "addLine",
+        "returnType": "Object",
+        "params": [],
+        "doc": "Adds an empty line to the telemetry."
+      },
+      {
+        "name": "update",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Sends the accumulated telemetry data to the Driver Station."
+      },
+      {
+        "name": "clearAll",
+        "returnType": "void",
+        "params": [],
+        "doc": "Clears all data items (but not lines)."
+      },
+      {
+        "name": "speak",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "String",
+            "name": "text"
+          }
+        ],
+        "doc": "Speaks a text string through the Driver Station."
+      },
+      {
+        "name": "speak",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "String",
+            "name": "text"
+          },
+          {
+            "type": "String",
+            "name": "languageCode"
+          },
+          {
+            "type": "String",
+            "name": "countryCode"
+          }
+        ],
+        "doc": "Speaks a text string with language and country options."
+      },
+      {
+        "name": "setAutoClear",
+        "returnType": "void",
+        "params": [
+          {
+            "type": "boolean",
+            "name": "autoClear"
+          }
+        ],
+        "doc": "Sets whether telemetry is automatically cleared after each update()."
+      },
+      {
+        "name": "isAutoClear",
+        "returnType": "boolean",
+        "params": [],
+        "doc": "Returns whether auto-clear is enabled."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "TelemetryImpl": {
+    "kind": "class",
+    "parents": [
+      "Telemetry"
+    ],
+    "methods": [
+      {
+        "name": "getLog",
+        "returnType": "List<String>",
+        "params": [],
+        "doc": "Mock implementation of Telemetry that stores all data for test assertions.\n\n<p>Usage in tests:\n<pre>\n  TelemetryImpl telemetry = new TelemetryImpl();\n  telemetry.addData(\"Speed\", 0.75);\n  telemetry.update();\n  assert telemetry.getLog().contains(\"Speed: 0.75\");\n</pre>\n/\npublic class TelemetryImpl implements Telemetry {\n\n    /** Ordered log of all telemetry entries (data items, lines, and actions). */\n    private final List<String> log = new ArrayList<>();\n\n    /** Currently buffered data items before the next update(). */\n    private final List<String> currentItems = new ArrayList<>();\n\n    /** Spoken text entries. */\n    private final List<String> spokenText = new ArrayList<>();\n\n    private boolean autoClear = true;\n    private int updateCount = 0;\n\n    public TelemetryImpl() {\n        // Default constructor\n    }"
+      },
+      {
+        "name": "getCurrentItems",
+        "returnType": "List<String>",
+        "params": [],
+        "doc": "Returns the current items buffered since the last update."
+      },
+      {
+        "name": "getSpokenText",
+        "returnType": "List<String>",
+        "params": [],
+        "doc": "Returns all text that was passed to speak()."
+      },
+      {
+        "name": "getUpdateCount",
+        "returnType": "int",
+        "params": [],
+        "doc": "Returns the number of times update() has been called."
+      },
+      {
+        "name": "resetLog",
+        "returnType": "void",
+        "params": [],
+        "doc": "Clears the entire log and resets the update count.\nUseful between test cases."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  },
+  "AngleUnit": {
+    "kind": "enum",
+    "parents": [],
+    "methods": [
+      {
+        "name": "fromDegrees",
+        "returnType": "double",
+        "params": [
+          {
+            "type": "double",
+            "name": "degrees"
+          }
+        ],
+        "doc": "Stub for the FTC SDK AngleUnit enum.\nRepresents units of angle measurement with conversion utilities.\n/\npublic enum AngleUnit {\n    DEGREES, RADIANS;\n\n    /**\nConverts an angle in degrees to this unit."
+      },
+      {
+        "name": "fromRadians",
+        "returnType": "double",
+        "params": [
+          {
+            "type": "double",
+            "name": "radians"
+          }
+        ],
+        "doc": "Converts an angle in radians to this unit."
+      }
+    ],
+    "fields": [],
+    "enums": {
+      "AngleUnit": [
+        "DEGREES"
+      ]
+    }
+  },
+  "DistanceUnit": {
+    "kind": "enum",
+    "parents": [],
+    "methods": [
+      {
+        "name": "fromCm",
+        "returnType": "double",
+        "params": [
+          {
+            "type": "double",
+            "name": "cm"
+          }
+        ],
+        "doc": "Stub for the FTC SDK DistanceUnit enum.\nRepresents units of distance measurement with conversion utilities.\n/\npublic enum DistanceUnit {\n    CM, MM, INCH, METER;\n\n    /**\nConverts a distance in centimeters to this unit."
+      }
+    ],
+    "fields": [],
+    "enums": {
+      "DistanceUnit": [
+        "CM",
+        "MM",
+        "INCH"
+      ]
+    }
+  },
+  "YawPitchRollAngles": {
+    "kind": "class",
+    "parents": [],
+    "methods": [
+      {
+        "name": "getYaw",
+        "returnType": "double",
+        "params": [
+          {
+            "type": "AngleUnit",
+            "name": "unit"
+          }
+        ],
+        "doc": "Returns the yaw angle in the specified unit."
+      },
+      {
+        "name": "getPitch",
+        "returnType": "double",
+        "params": [
+          {
+            "type": "AngleUnit",
+            "name": "unit"
+          }
+        ],
+        "doc": "Returns the pitch angle in the specified unit."
+      },
+      {
+        "name": "getRoll",
+        "returnType": "double",
+        "params": [
+          {
+            "type": "AngleUnit",
+            "name": "unit"
+          }
+        ],
+        "doc": "Returns the roll angle in the specified unit."
+      }
+    ],
+    "fields": [],
+    "enums": {}
+  }
+}
