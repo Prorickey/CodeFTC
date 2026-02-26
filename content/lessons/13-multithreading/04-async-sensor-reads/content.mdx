@@ -1,0 +1,141 @@
+---
+title: "Async Sensor Reads"
+description: "Offload slow I2C sensor reads to a background thread and give your main loop instant access to cached values."
+---
+
+# Async Sensor Reads
+
+This lesson combines everything from the previous three lessons into the most important multithreading pattern for FTC: **asynchronous sensor reads**. I2C sensors are the most common source of loop time problems in competitive FTC robots. Moving them off the main thread is often worth 10–40ms per loop iteration.
+
+## Why I2C Sensors Are Slow
+
+I2C (Inter-Integrated Circuit) is a two-wire serial bus. Every read from a color sensor, distance sensor, or IMU goes through this bus:
+
+1. The Control Hub sends a read request over the I2C wire.
+2. The sensor processes it.
+3. The sensor sends data back.
+4. The SDK deserializes and returns the value.
+
+This round-trip takes **5–30ms** depending on the sensor. Reading three channels of a color sensor (red, green, blue) could take 60ms or more — pushing your 1kHz loop down to 16Hz.
+
+## The Pattern
+
+Keep a **cached value** that the main loop reads instantly. A dedicated **sensor thread** updates the cache in the background at whatever rate the sensor supports.
+
+```
+Main Thread                     Sensor Thread
+───────────────                 ─────────────────────
+read cachedValue (instant)      while running:
+set motor power                   cachedValue = sensor.read()  ← slow I2C
+update telemetry                  sleep(20ms)
+loop in <1ms
+```
+
+## Implementing the Pattern
+
+```java
+@TeleOp(name = "Async Distance")
+public class AsyncDistance extends LinearOpMode {
+
+    // Shared cache — AtomicReference for thread-safe writes and reads
+    private final AtomicReference<Double> cachedDistance =
+            new AtomicReference<>(0.0);
+
+    private volatile boolean sensorThreadRunning = true;
+
+    @Override
+    public void runOpMode() {
+        DistanceSensor frontSensor = hardwareMap.get(DistanceSensor.class, "frontSensor");
+        DcMotor        leftMotor   = hardwareMap.get(DcMotor.class, "leftMotor");
+        DcMotor        rightMotor  = hardwareMap.get(DcMotor.class, "rightMotor");
+
+        // --- Start sensor thread ---
+        Thread sensorThread = new Thread(() -> {
+            while (sensorThreadRunning) {
+                double distance = frontSensor.getDistance(DistanceUnit.CM);
+                cachedDistance.set(distance);
+                try {
+                    Thread.sleep(20);   // Read at ~50Hz
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        });
+        sensorThread.setDaemon(true);
+        sensorThread.start();
+
+        waitForStart();
+
+        // --- Main loop: no I2C blocking ---
+        while (opModeIsActive()) {
+            double distance = cachedDistance.get();  // Instant — no I2C wait
+
+            // Slow down if something is close
+            double speed = (distance < 20.0) ? 0.3 : 1.0;
+
+            leftMotor.setPower(-gamepad1.left_stick_y * speed);
+            rightMotor.setPower(-gamepad1.right_stick_y * speed);
+
+            telemetry.addData("Distance (cm)", distance);
+            telemetry.addData("Speed limit",   speed);
+            telemetry.update();
+        }
+
+        // --- Clean shutdown ---
+        sensorThreadRunning = false;
+        sensorThread.interrupt();
+        try { sensorThread.join(500); } catch (InterruptedException ignored) {}
+    }
+}
+```
+
+## Tuning the Sensor Thread Sleep
+
+The `Thread.sleep(20)` controls how often the sensor is read (every 20ms = 50Hz). Balance this against how much CPU you want to give the sensor thread:
+
+| Sleep | Read rate | Notes |
+|-------|-----------|-------|
+| 5 ms | 200 Hz | More CPU, diminishing returns for slow I2C sensors |
+| 20 ms | 50 Hz | Good balance for most sensors |
+| 50 ms | 20 Hz | Fine for sensors where freshness is less critical |
+
+Don't set it to 0 — a busy-spinning sensor thread competes with the main thread for CPU.
+
+## Multiple Sensors, Multiple Threads
+
+Each slow sensor can have its own thread, or you can consolidate all slow reads into one thread:
+
+```java
+Thread sensorThread = new Thread(() -> {
+    while (sensorThreadRunning) {
+        cachedDistance.set(frontSensor.getDistance(DistanceUnit.CM));
+        cachedHeading.set(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
+        try { Thread.sleep(20); } catch (InterruptedException e) { break; }
+    }
+});
+```
+
+Consolidating sensors into one thread avoids thread-scheduling overhead and keeps things simpler to shut down.
+
+## What Not to Do From Background Threads
+
+- **Don't write to motors or servos** from a background thread. The FTC SDK's hardware access is not thread-safe for output devices. All motor/servo writes must happen on the main thread.
+- **Don't call telemetry.update()** from a background thread.
+- **Don't read gamepad values** from a background thread.
+
+Background threads should be **input only** — read sensors, compute values, cache results. The main thread handles all output.
+
+## Your Exercise
+
+You have a `DistanceSensor` named `"frontSensor"` and a `DcMotor` named `"driveMotor"`.
+
+Your task:
+
+1. Declare an `AtomicReference<Double> cachedDistance` initialized to `0.0` and a `volatile boolean sensorThreadRunning = true`.
+2. Get both devices from the hardware map.
+3. Create a sensor thread that reads `frontSensor.getDistance(DistanceUnit.CM)`, stores it in `cachedDistance`, sleeps 20ms, and stops when `sensorThreadRunning` is `false`.
+4. Set the thread as a daemon, start it, and sleep 50ms to let it read at least once.
+5. After `waitForStart()`, run one loop iteration: read `cachedDistance.get()` and set `driveMotor` power to `0.5` if distance > 30cm, or `0.0` if ≤ 30cm.
+6. Shut down the thread cleanly.
+
+The simulated sensor returns **45.0 cm**, so the motor should end up at power **0.5**.

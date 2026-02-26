@@ -1,0 +1,18 @@
+{
+  "title": "Voltage Normalization",
+  "testCount": 2,
+  "hints": [
+    {
+      "title": "Getting the voltage sensor",
+      "content": "Use `VoltageSensor voltageSensor = hardwareMap.voltageSensor.iterator().next();` to get the first (and usually only) voltage sensor. Then read it with `voltageSensor.getVoltage()`."
+    },
+    {
+      "title": "The normalization formula",
+      "content": "Scale your desired power by the ratio of nominal to actual voltage: `double scale = 12.0 / voltage;` then `double normalizedPower = 0.7 * scale;`. At 10.5V, scale is 12.0/10.5 ≈ 1.143, so the result is ≈ 0.8."
+    },
+    {
+      "title": "Don't forget to clamp",
+      "content": "The scaled value can exceed 1.0, which is invalid for setPower(). Clamp it: `normalizedPower = Math.max(-1.0, Math.min(1.0, normalizedPower));`"
+    }
+  ]
+}

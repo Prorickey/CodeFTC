@@ -1,5 +1,5 @@
 {
-  "title": "Gamepad Edge Detection",
+  "title": "Gamepad Input",
   "testCount": 1,
   "hints": [
     {
@@ -12,10 +12,10 @@
     },
     {
       "title": "Why does the servo end up at 1.0?",
-      "content": "The boolean starts as `false`. Since `gamepad1.a` is `true`, we toggle it: `clawOpen = !false` which gives `true`. Then `clawOpen` is true, so we set the servo to 1.0."
+      "content": "The boolean starts as `false`. Since `gamepad1.a` is `true`, we toggle it: `clawOpen = !false` which gives `true`. Then since `clawOpen` is true, we set the servo to 1.0."
     },
     {
-      "title": "Getting the servo from hardware map",
+      "title": "Getting the servo from the hardware map",
       "content": "Use `Servo clawServo = hardwareMap.get(Servo.class, \"clawServo\");` before `waitForStart()`, just like with motors."
     }
   ]

@@ -1,0 +1,18 @@
+{
+  "title": "Multithreading in Kotlin",
+  "testCount": 2,
+  "hints": [
+    {
+      "title": "Creating a ScheduledExecutorService",
+      "content": "Use `ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();` — this is the Java equivalent of a coroutine dispatcher with a single background thread."
+    },
+    {
+      "title": "Scheduling a repeating task",
+      "content": "Call `scheduler.scheduleAtFixedRate(() -> { cachedDistance.set(frontSensor.getDistance(DistanceUnit.CM)); }, 0, 20, TimeUnit.MILLISECONDS);` — the 0 means start immediately, 20ms between each run."
+    },
+    {
+      "title": "Letting the first read complete",
+      "content": "After calling scheduleAtFixedRate, sleep for 50ms with `Thread.sleep(50)` so the scheduled task has time to run at least once before your main code reads the cache."
+    }
+  ]
+}

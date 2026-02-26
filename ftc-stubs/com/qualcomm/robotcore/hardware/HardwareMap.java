@@ -1,6 +1,9 @@
 package com.qualcomm.robotcore.hardware;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,8 +25,37 @@ public class HardwareMap {
     /** Internal storage mapping device names to device objects. */
     private final Map<String, Object> deviceMap = new HashMap<>();
 
+    /**
+     * Iterable collection of voltage sensors, mirroring the real SDK's
+     * {@code HardwareMap.voltageSensor} field. Use {@code registerVoltageSensor()}
+     * in tests to populate it.
+     */
+    public final VoltageSensorList voltageSensor = new VoltageSensorList();
+
     public HardwareMap() {
         // Default constructor
+    }
+
+    /** Simple iterable list of VoltageSensor instances. */
+    public static class VoltageSensorList implements Iterable<VoltageSensor> {
+        private final List<VoltageSensor> sensors = new ArrayList<>();
+
+        public void add(VoltageSensor sensor) {
+            sensors.add(sensor);
+        }
+
+        @Override
+        public Iterator<VoltageSensor> iterator() {
+            return sensors.iterator();
+        }
+    }
+
+    /**
+     * Registers a voltage sensor for use via {@code hardwareMap.voltageSensor}.
+     * This is a test helper not present in the real FTC SDK.
+     */
+    public void registerVoltageSensor(VoltageSensor sensor) {
+        voltageSensor.add(sensor);
     }
 
     /**

@@ -7,15 +7,15 @@ public class StudentCode extends LinearOpMode {
     @Override
     public void runOpMode() {
         Servo clawServo = hardwareMap.get(Servo.class, "clawServo");
-        
+
         waitForStart();
-        
+
         boolean clawOpen = false;
-        
+
         if (gamepad1.a) {
             clawOpen = !clawOpen;
         }
-        
+
         if (clawOpen) {
             clawServo.setPosition(1.0);
         } else {

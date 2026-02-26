@@ -1,0 +1,84 @@
+---
+title: "Tank Drive"
+description: "Use gamepad joysticks to drive a two-motor robot with the classic tank drive scheme."
+---
+
+# Tank Drive
+
+You know how to read gamepad input. Now let's use it to drive a robot. **Tank drive** is one of the most common drivetrain control schemes in FTC, and the perfect starting point.
+
+## What Is Tank Drive?
+
+Tank drive maps each joystick directly to one side of the drivetrain:
+
+- The **left joystick** controls the **left motors**.
+- The **right joystick** controls the **right motors**.
+
+Push both sticks forward — the robot drives straight. Push them in opposite directions — the robot spins in place. Push one forward and leave the other centered — the robot turns in an arc. It is called "tank drive" because it works exactly like the two-lever controls on a tank or bulldozer.
+
+## The Y-Axis Inversion Gotcha
+
+Here is something that trips up almost every new FTC programmer:
+
+**Pushing the joystick forward gives a *negative* Y value.**
+
+This is a convention inherited from flight simulators (pushing forward means "nose down"), but it is the opposite of what you would expect. If the driver pushes the left stick all the way forward, `gamepad1.left_stick_y` will be something like `-1.0`, not `+1.0`.
+
+Since we want "forward on the stick" to mean "forward power" (positive), we **negate** the Y value:
+
+```java
+double leftPower  = -gamepad1.left_stick_y;   // -(-0.8) = 0.8
+double rightPower = -gamepad1.right_stick_y;
+```
+
+If your robot ever drives backwards when you push forward, a missing negation is almost certainly the culprit.
+
+## Putting It Together
+
+Here is a complete tank drive OpMode:
+
+```java
+@TeleOp(name = "Tank Drive")
+public class TankDrive extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        DcMotor leftMotor  = hardwareMap.get(DcMotor.class, "leftMotor");
+        DcMotor rightMotor = hardwareMap.get(DcMotor.class, "rightMotor");
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            double leftPower  = -gamepad1.left_stick_y;
+            double rightPower = -gamepad1.right_stick_y;
+
+            leftMotor.setPower(leftPower);
+            rightMotor.setPower(rightPower);
+
+            telemetry.addData("Left Power",  leftPower);
+            telemetry.addData("Right Power", rightPower);
+            telemetry.update();
+        }
+    }
+}
+```
+
+Notice the `while (opModeIsActive())` loop. TeleOp code must continuously read the gamepad and update the motors — you can't just set power once and walk away. `opModeIsActive()` returns `true` as long as the OpMode has not been stopped by the Driver Station.
+
+## Your Exercise
+
+The simulated gamepad has:
+
+- `left_stick_y` set to **-0.8** (driver pushing forward)
+- `right_stick_y` set to **-0.6** (driver pushing forward, less aggressively)
+
+Your task:
+
+1. Get `leftMotor` and `rightMotor` from the hardware map.
+2. Call `waitForStart()`.
+3. Read the gamepad stick values and **negate** them to fix the Y-axis inversion.
+4. Set `leftMotor` power to the corrected left stick value.
+5. Set `rightMotor` power to the corrected right stick value.
+
+After your code runs, `leftMotor` should be at power **0.8** and `rightMotor` at **0.6**.
+
+Give it a try!

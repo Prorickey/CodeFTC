@@ -1,5 +1,5 @@
 {
-  "title": "Gamepad Tank Drive",
+  "title": "Tank Drive",
   "testCount": 2,
   "hints": [
     {
@@ -8,7 +8,7 @@
     },
     {
       "title": "How to read gamepad input",
-      "content": "Access gamepad values directly as fields: `gamepad1.left_stick_y` and `gamepad1.right_stick_y`. No method call needed -- they are public fields."
+      "content": "Access gamepad values directly as fields: `gamepad1.left_stick_y` and `gamepad1.right_stick_y`. No method call needed — they are public fields."
     },
     {
       "title": "Setting motor power from a variable",

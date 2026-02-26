@@ -1,0 +1,140 @@
+---
+title: "Java Threads"
+description: "Create and safely manage background threads in FTC using Thread, Runnable, and the stop-flag pattern."
+---
+
+# Java Threads
+
+The previous lesson showed what blocks your main loop. The solution is often to move work off the main thread. In Java, that means creating a **thread** — an independent unit of execution that runs concurrently with your OpMode loop.
+
+## What Is a Thread?
+
+Your OpMode runs on the **main thread**. When you create a new `Thread`, the JVM schedules it to run alongside the main thread. Both threads run concurrently, sharing access to the same object fields. This lets you do work in the background without blocking the main loop.
+
+## Creating a Thread
+
+The simplest way is to pass a `Runnable` lambda:
+
+```java
+Thread backgroundThread = new Thread(() -> {
+    // This code runs on the background thread
+    while (true) {
+        // do background work
+    }
+});
+
+backgroundThread.start();  // Begin execution
+```
+
+Once `start()` is called, the background thread begins running immediately alongside your main loop.
+
+## The Stop-Flag Pattern
+
+Background threads need a way to know when to stop. **Never** call `thread.stop()` — it is deprecated and can corrupt state. Instead, use a `volatile boolean` flag:
+
+```java
+volatile boolean threadRunning = true;
+
+Thread backgroundThread = new Thread(() -> {
+    while (threadRunning) {
+        // do background work
+    }
+});
+```
+
+The `volatile` keyword tells the JVM that this variable may be changed by another thread, so it should always be read from main memory rather than a CPU cache. Without `volatile`, the background thread might never see that `threadRunning` has been set to `false`.
+
+To stop the thread:
+
+```java
+threadRunning = false;
+backgroundThread.interrupt();  // Wake it if it's sleeping
+backgroundThread.join();       // Wait for it to finish
+```
+
+Always call `join()` before your OpMode ends. If you don't, the background thread can outlive the OpMode and interfere with the next one.
+
+## The `isDaemon` Option
+
+Marking a thread as a **daemon thread** means the JVM will kill it automatically if no non-daemon threads are alive. In FTC this is useful as a safety net, but you should still stop threads explicitly:
+
+```java
+backgroundThread.setDaemon(true);
+backgroundThread.start();
+```
+
+## The `interrupt()` Pattern
+
+If your background thread calls `Thread.sleep()`, setting `threadRunning = false` alone won't wake it immediately — it will sleep through the rest of its sleep duration. `interrupt()` breaks the sleep early by throwing `InterruptedException`:
+
+```java
+Thread backgroundThread = new Thread(() -> {
+    while (threadRunning) {
+        doWork();
+        try {
+            Thread.sleep(10);  // Sleep 10ms between reads
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();  // Restore interrupted status
+            break;
+        }
+    }
+});
+```
+
+## Full Pattern: Background Sensor Read
+
+```java
+@TeleOp(name = "Threaded Example")
+public class ThreadedExample extends LinearOpMode {
+
+    volatile boolean threadRunning = true;
+    volatile double  sensorValue   = 0.0;
+
+    @Override
+    public void runOpMode() {
+        DistanceSensor sensor = hardwareMap.get(DistanceSensor.class, "frontSensor");
+        DcMotor        motor  = hardwareMap.get(DcMotor.class, "driveMotor");
+
+        Thread sensorThread = new Thread(() -> {
+            while (threadRunning) {
+                sensorValue = sensor.getDistance(DistanceUnit.CM);
+                try { Thread.sleep(20); } catch (InterruptedException e) { break; }
+            }
+        });
+
+        sensorThread.setDaemon(true);
+        sensorThread.start();
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            motor.setPower(-gamepad1.left_stick_y);
+
+            // Read the cached value — no I2C delay here
+            telemetry.addData("Distance (cm)", sensorValue);
+            telemetry.update();
+        }
+
+        // Clean shutdown
+        threadRunning = false;
+        sensorThread.interrupt();
+        try { sensorThread.join(500); } catch (InterruptedException ignored) {}
+    }
+}
+```
+
+The main loop reads `sensorValue` instantly — the I2C cost is paid by the background thread on its own schedule.
+
+## Your Exercise
+
+You have a `DcMotor` named `"motor"` and a shared `AtomicInteger counter` (imported from `java.util.concurrent.atomic`).
+
+Your task:
+
+1. Get `motor` from the hardware map.
+2. Create a background thread that increments `counter` by 1, then calls `Thread.sleep(5)` in a loop, stopping when `threadRunning` becomes `false`.
+3. Mark the thread as a daemon and start it.
+4. After `waitForStart()`, run one iteration of the loop: set `motor` power to `0.5` and log `counter.get()` to telemetry.
+5. Set `threadRunning = false`, call `interrupt()` and `join()` on the thread.
+
+After your code runs, `motor` power should be `0.5` and `counter` should be at least `1`.

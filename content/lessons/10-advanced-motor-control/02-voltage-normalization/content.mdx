@@ -1,0 +1,127 @@
+---
+title: "Voltage Normalization"
+description: "Compensate for battery voltage drop to keep motor output consistent across a match."
+---
+
+# Voltage Normalization
+
+You have already seen that `setPower(0.5)` commands 50% of available voltage — not 50% of a fixed speed. As the battery drains during a match, that "available voltage" shrinks. A 50% power command at 13V pushes the motor harder than the same command at 11V. Voltage normalization corrects for this, giving you consistent motor behavior regardless of battery state.
+
+## Why Battery Voltage Matters
+
+A fully charged 12V LiPo battery actually sits around 13.2V. After several matches of competition use, it might be down to 11V or lower. That is a difference of more than 20% in delivered power at the same `setPower()` value.
+
+For most mechanisms this is manageable. But for anything requiring precision — a shooter flywheel that needs a consistent exit velocity, or an arm that should always hold the same position — that 20% variation is too much to ignore.
+
+## Reading Battery Voltage
+
+The FTC SDK exposes battery voltage through `VoltageSensor`, which you access from the hardware map:
+
+```java
+VoltageSensor voltageSensor = hardwareMap.voltageSensor.iterator().next();
+double voltage = voltageSensor.getVoltage();  // e.g., 12.4
+```
+
+`hardwareMap.voltageSensor` is a list of all voltage sensors on the robot (the Control Hub and Expansion Hub each appear as one). Calling `.iterator().next()` grabs the first one, which is sufficient for most robots.
+
+## The Normalization Formula
+
+Pick a **nominal voltage** — the voltage you design your power values around. 12.0V is the most common choice, matching the battery's rated voltage.
+
+Then scale your desired power by the ratio of nominal to actual voltage:
+
+```java
+double nominalVoltage = 12.0;
+double scale = nominalVoltage / voltage;      // > 1.0 when battery is low
+double normalizedPower = desiredPower * scale;
+```
+
+When the battery is at 12V exactly, `scale` is 1.0 and nothing changes. When it drops to 10V, `scale` becomes 1.2, automatically boosting the commanded power to compensate.
+
+### Always Clamp the Result
+
+The scaled value can exceed 1.0 (the motor's maximum), so clamp it:
+
+```java
+normalizedPower = Math.max(-1.0, Math.min(1.0, normalizedPower));
+motor.setPower(normalizedPower);
+```
+
+Or as a one-liner using a helper:
+
+```java
+motor.setPower(Math.max(-1.0, Math.min(1.0, desiredPower * (12.0 / voltage))));
+```
+
+## A Helper Method
+
+Because you will use this pattern throughout an OpMode, it is worth extracting it into a method:
+
+```java
+private double normalize(double power) {
+    double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
+    double scale = 12.0 / voltage;
+    return Math.max(-1.0, Math.min(1.0, power * scale));
+}
+```
+
+Then in your TeleOp loop:
+
+```java
+leftMotor.setPower(normalize(-gamepad1.left_stick_y));
+rightMotor.setPower(normalize(-gamepad1.right_stick_y));
+```
+
+## A Note on Velocity Control
+
+If you are already using `DcMotorEx.setVelocity()` from the previous lesson, you do **not** need voltage normalization for those motors — the REV Hub's built-in PIDF controller already compensates for battery voltage automatically. Normalization is most valuable when you are using `setPower()` directly (e.g., during open-loop TeleOp, or when encoders are unavailable).
+
+## Full Example
+
+```java
+@TeleOp(name = "Normalized Drive")
+public class NormalizedDrive extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        DcMotor leftMotor  = hardwareMap.get(DcMotor.class, "leftMotor");
+        DcMotor rightMotor = hardwareMap.get(DcMotor.class, "rightMotor");
+
+        VoltageSensor voltageSensor = hardwareMap.voltageSensor.iterator().next();
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            double voltage = voltageSensor.getVoltage();
+            double scale   = 12.0 / voltage;
+
+            double leftPower  = -gamepad1.left_stick_y  * scale;
+            double rightPower = -gamepad1.right_stick_y * scale;
+
+            leftPower  = Math.max(-1.0, Math.min(1.0, leftPower));
+            rightPower = Math.max(-1.0, Math.min(1.0, rightPower));
+
+            leftMotor.setPower(leftPower);
+            rightMotor.setPower(rightPower);
+
+            telemetry.addData("Battery (V)", voltage);
+            telemetry.addData("Scale",       scale);
+            telemetry.update();
+        }
+    }
+}
+```
+
+## Your Exercise
+
+The simulated battery voltage is **10.5V**. You want to drive the robot at a target power of **0.7**.
+
+Your task:
+
+1. Get `motor` from the hardware map as a `DcMotor`.
+2. Get the voltage sensor using `hardwareMap.voltageSensor.iterator().next()`.
+3. Call `waitForStart()`.
+4. Read the voltage, compute the scale factor (`12.0 / voltage`), and multiply it by the target power of **0.7**.
+5. Clamp the result to the range **[-1.0, 1.0]**.
+6. Set `motor`'s power to the normalized value.
+
+At 10.5V with a 12.0V nominal, the scale is `12.0 / 10.5 ≈ 1.143`, so the normalized power should be approximately **0.8**.
