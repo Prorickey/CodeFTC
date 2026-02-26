@@ -1,0 +1,6 @@
+{
+  "title": "Advanced Motor Control",
+  "slug": "09-advanced-motor-control",
+  "order": 10,
+  "description": "BRAKE vs FLOAT zero-power behavior, DcMotorEx velocity control, and continuous rotation servos."
+}

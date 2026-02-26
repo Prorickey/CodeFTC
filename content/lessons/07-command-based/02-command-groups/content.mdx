@@ -1,0 +1,198 @@
+---
+title: "Command Groups"
+description: "Compose commands into sequential and parallel groups to express complex multi-step robot actions cleanly."
+---
+
+# Command Groups
+
+Individual commands are useful on their own, but the real power of command-based programming appears when you start **composing** them. A *command group* is itself a command — one that manages a collection of other commands, running them sequentially or in parallel.
+
+## Why Composition Matters
+
+Imagine you need to:
+1. Raise the lift
+2. Then open the claw
+3. Then lower the lift
+
+Without composition, you either write a long inline FSM or manually chain state variables. With command groups, you just write:
+
+```java
+scheduler.schedule(new SequentialCommandGroup(
+    new RunMotorCommand(liftMotor, 1.0, 1500),
+    new SetServoCommand(clawServo, 1.0),
+    new RunMotorCommand(liftMotor, -1.0, 1500)
+));
+```
+
+The group handles all the sequencing automatically. Each command starts only after the previous one finishes.
+
+## SequentialCommandGroup
+
+A `SequentialCommandGroup` runs its children **one at a time**, in order. It is finished when the last child finishes.
+
+```java
+class SequentialCommandGroup implements Command {
+    private java.util.List<Command> commands;
+    private int index = 0;
+
+    SequentialCommandGroup(Command... commands) {
+        this.commands = java.util.Arrays.asList(commands);
+    }
+
+    @Override
+    public void initialize() {
+        index = 0;
+        if (!commands.isEmpty()) {
+            commands.get(0).initialize();
+        }
+    }
+
+    @Override
+    public void execute() {
+        if (index >= commands.size()) return;
+        Command current = commands.get(index);
+        current.execute();
+        if (current.isFinished()) {
+            current.end(false);
+            index++;
+            if (index < commands.size()) {
+                commands.get(index).initialize();
+            }
+        }
+    }
+
+    @Override
+    public boolean isFinished() {
+        return index >= commands.size();
+    }
+
+    @Override
+    public void end(boolean interrupted) {
+        if (interrupted && index < commands.size()) {
+            commands.get(index).end(true);
+        }
+    }
+}
+```
+
+Step through what happens when the scheduler runs this:
+- `initialize()` — starts the first command.
+- `execute()` — ticks the current command. When it finishes, moves to the next one.
+- `isFinished()` — returns true once all commands are done.
+
+## ParallelCommandGroup
+
+A `ParallelCommandGroup` runs all its children **simultaneously**. It is finished when all children are finished.
+
+```java
+class ParallelCommandGroup implements Command {
+    private java.util.List<Command> commands;
+    private java.util.Set<Integer> finished = new java.util.HashSet<>();
+
+    ParallelCommandGroup(Command... commands) {
+        this.commands = java.util.Arrays.asList(commands);
+    }
+
+    @Override
+    public void initialize() {
+        finished.clear();
+        for (Command c : commands) c.initialize();
+    }
+
+    @Override
+    public void execute() {
+        for (int i = 0; i < commands.size(); i++) {
+            if (finished.contains(i)) continue;
+            Command c = commands.get(i);
+            c.execute();
+            if (c.isFinished()) {
+                c.end(false);
+                finished.add(i);
+            }
+        }
+    }
+
+    @Override
+    public boolean isFinished() {
+        return finished.size() == commands.size();
+    }
+
+    @Override
+    public void end(boolean interrupted) {
+        if (interrupted) {
+            for (int i = 0; i < commands.size(); i++) {
+                if (!finished.contains(i)) commands.get(i).end(true);
+            }
+        }
+    }
+}
+```
+
+Every tick, all unfinished commands execute. As each one finishes, it gets removed from the active set. The group finishes when all are done.
+
+## Mixing Sequential and Parallel Groups
+
+Because groups are themselves commands, you can nest them:
+
+```java
+// Raise lift and spin intake simultaneously,
+// then close claw when both are done
+scheduler.schedule(new SequentialCommandGroup(
+    new ParallelCommandGroup(
+        new RunMotorCommand(liftMotor, 1.0, 1500),
+        new RunMotorCommand(intakeMotor, 0.8, 1000)
+    ),
+    new SetServoCommand(clawServo, 0.0)
+));
+```
+
+This is declarative — you describe *what* should happen, not *how* to manage the timing. The groups handle all transitions automatically.
+
+## Comparing to Inline FSMs
+
+| Aspect | Inline FSM | Command Groups |
+|---|---|---|
+| Reusability | Logic tied to one opMode | Commands reusable anywhere |
+| Readability | State variables and switch blocks | Reads like a recipe |
+| Composability | Manual state coordination | Nest groups freely |
+| Debugging | Trace state transitions | Isolate and test each command |
+
+For complex autonomous routines especially, command groups make the high-level plan obvious at a glance.
+
+## A Complete Autonomous Example
+
+```java
+@Autonomous(name = "Score Preload")
+public class ScorePreload extends LinearOpMode {
+    @Override
+    public void runOpMode() {
+        DcMotor liftMotor = hardwareMap.get(DcMotor.class, "lift");
+        Servo clawServo = hardwareMap.get(Servo.class, "claw");
+
+        CommandScheduler scheduler = new CommandScheduler();
+
+        waitForStart();
+
+        scheduler.schedule(new SequentialCommandGroup(
+            new RunMotorCommand(liftMotor, 1.0, 1500),  // Raise lift
+            new SetServoCommand(clawServo, 1.0),         // Open claw
+            new RunMotorCommand(liftMotor, -1.0, 1500)   // Lower lift
+        ));
+
+        while (opModeIsActive() && !scheduler.isIdle()) {
+            scheduler.run();
+        }
+    }
+}
+```
+
+## Your Exercise
+
+You will build a two-step sequential sequence using a `SequentialCommandGroup`. The sequence should:
+
+1. Run `motorA` at power `1.0` for one tick (using a one-shot `RunOnceCommand`)
+2. Then run `motorB` at power `0.5` for one tick
+
+After the group finishes, `motorA` should be at `0.0` (stopped by `end()`) and `motorB` should be at `0.0` (stopped by `end()`). Both motors should have had `setPower` called with their respective powers during the sequence.
+
+Implement `RunOnceCommand` (a command that sets power in `initialize()`, does nothing in `execute()`, returns `true` from `isFinished()`, and stops the motor in `end()`), then compose two of them in a `SequentialCommandGroup`.

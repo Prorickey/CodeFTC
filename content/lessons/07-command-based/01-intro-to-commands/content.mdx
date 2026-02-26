@@ -1,0 +1,184 @@
+---
+title: "Intro to Command-Based Programming"
+description: "Learn how to encapsulate robot actions as reusable Command objects that can be scheduled, composed, and cancelled."
+---
+
+# Intro to Command-Based Programming
+
+You have already learned how to use state machines to manage complex robot behavior without blocking your main loop. Command-based programming takes that idea one step further: instead of writing FSM logic inline, you **encapsulate each action as its own object** — a *Command*. Commands are reusable, composable, and easy to test in isolation.
+
+## What Is a Command?
+
+A Command is an object that represents one discrete robot action. Think of it like a to-do item: it has a start, some ongoing work, and a clear finish condition.
+
+Every command has four lifecycle methods:
+
+| Method | When it runs | What it does |
+|---|---|---|
+| `initialize()` | Once, when the command first starts | Set up hardware, reset timers |
+| `execute()` | Every loop iteration while running | Do the work |
+| `isFinished()` | Every loop iteration | Return `true` when done |
+| `end(boolean interrupted)` | Once, when finished or cancelled | Clean up |
+
+You define a `Command` interface with these four methods:
+
+```java
+interface Command {
+    void initialize();
+    void execute();
+    boolean isFinished();
+    void end(boolean interrupted);
+}
+```
+
+## Writing Your First Command
+
+Here is a command that drives a motor at a given power for a set number of milliseconds:
+
+```java
+class RunMotorCommand implements Command {
+    private DcMotor motor;
+    private double power;
+    private long durationMs;
+    private long startTime;
+
+    RunMotorCommand(DcMotor motor, double power, long durationMs) {
+        this.motor = motor;
+        this.power = power;
+        this.durationMs = durationMs;
+    }
+
+    @Override
+    public void initialize() {
+        startTime = System.currentTimeMillis();
+        motor.setPower(power);
+    }
+
+    @Override
+    public void execute() {
+        // Motor power is already set — nothing to do each loop
+    }
+
+    @Override
+    public boolean isFinished() {
+        return System.currentTimeMillis() - startTime >= durationMs;
+    }
+
+    @Override
+    public void end(boolean interrupted) {
+        motor.setPower(0.0);
+    }
+}
+```
+
+Notice the clean separation of responsibilities:
+- `initialize()` records the start time and begins motor motion.
+- `execute()` has nothing to do here — the motor is already running.
+- `isFinished()` checks the timer.
+- `end()` stops the motor whether the command finished normally or was interrupted.
+
+## A Simple Command Scheduler
+
+Commands are only useful if something *runs* them. A minimal scheduler looks like this:
+
+```java
+class CommandScheduler {
+    private Command current = null;
+
+    public void schedule(Command command) {
+        if (current != null) {
+            current.end(true); // interrupt previous command
+        }
+        current = command;
+        current.initialize();
+    }
+
+    public void run() {
+        if (current == null) return;
+        current.execute();
+        if (current.isFinished()) {
+            current.end(false);
+            current = null;
+        }
+    }
+
+    public boolean isIdle() {
+        return current == null;
+    }
+}
+```
+
+Your main loop calls `scheduler.run()` every iteration:
+
+```java
+CommandScheduler scheduler = new CommandScheduler();
+
+// Schedule a command when a button is pressed
+if (gamepad1.a) {
+    scheduler.schedule(new RunMotorCommand(liftMotor, 1.0, 2000));
+}
+
+while (opModeIsActive()) {
+    scheduler.run();  // Advances the current command by one tick
+    telemetry.addData("Scheduler idle", scheduler.isIdle());
+    telemetry.update();
+}
+```
+
+## Why This Is Better Than Inline FSMs
+
+Compare these two approaches for a lift sequence:
+
+**Inline FSM approach:**
+```java
+// State and transition logic scattered through the loop
+switch (liftState) {
+    case IDLE:
+        liftMotor.setPower(0.0);
+        if (gamepad1.a) { liftState = LiftState.RAISING; startTime = System.currentTimeMillis(); }
+        break;
+    case RAISING:
+        liftMotor.setPower(1.0);
+        if (System.currentTimeMillis() - startTime > 2000) { liftState = LiftState.IDLE; liftMotor.setPower(0.0); }
+        break;
+}
+```
+
+**Command-based approach:**
+```java
+// The command encapsulates all lift logic
+if (gamepad1.a) {
+    scheduler.schedule(new RunMotorCommand(liftMotor, 1.0, 2000));
+}
+scheduler.run();
+```
+
+The command version is shorter, self-contained, and reusable. You can use `RunMotorCommand` anywhere in your codebase for any motor.
+
+## Commands Are Reusable
+
+Because commands are classes, you can instantiate them with different parameters:
+
+```java
+// Lift motor up for 2 seconds
+new RunMotorCommand(liftMotor, 1.0, 2000)
+
+// Intake motor on for 1.5 seconds
+new RunMotorCommand(intakeMotor, 0.8, 1500)
+
+// Outtake motor reversed for 0.5 seconds
+new RunMotorCommand(intakeMotor, -0.5, 500)
+```
+
+One class, many uses. This is the core power of command-based design.
+
+## Your Exercise
+
+Time to implement your first command! You will write a `DriveCommand` class that implements the `Command` interface. The command should:
+
+- Accept a `DcMotor` and a `power` value in its constructor
+- In `initialize()`, set the motor to the given power
+- In `isFinished()`, return `true` immediately (a one-shot command)
+- In `end(boolean interrupted)`, set the motor power to `0.0`
+
+Then schedule the command and run the scheduler once so the motor's final state is set correctly.

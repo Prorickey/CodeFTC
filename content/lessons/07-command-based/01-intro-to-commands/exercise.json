@@ -1,0 +1,22 @@
+{
+  "title": "Intro to Command-Based Programming",
+  "testCount": 3,
+  "hints": [
+    {
+      "title": "Implementing the Command interface",
+      "content": "Declare `class DriveCommand implements Command`. You need four methods: `initialize()`, `execute()`, `isFinished()`, and `end(boolean interrupted)`. Store the motor and power as fields set in the constructor."
+    },
+    {
+      "title": "What each method should do",
+      "content": "`initialize()` calls `motor.setPower(power)`. `execute()` does nothing. `isFinished()` returns `true` immediately (one-shot command). `end(boolean interrupted)` calls `motor.setPower(0.0)`."
+    },
+    {
+      "title": "Scheduling and running",
+      "content": "After defining the class, create a `CommandScheduler`, call `scheduler.schedule(new DriveCommand(motor, 0.75))`, then call `scheduler.run()` once. The scheduler will call `execute()` and then `end(false)` since `isFinished()` returns true immediately."
+    },
+    {
+      "title": "Why the motor ends at 0.0",
+      "content": "After one call to `scheduler.run()`: it calls `execute()` (no-op), then checks `isFinished()` which returns true, then calls `end(false)` which sets power to 0.0. The test checks that the motor power is 0.0 after the command finishes."
+    }
+  ]
+}

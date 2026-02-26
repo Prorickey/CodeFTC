@@ -1,0 +1,22 @@
+{
+  "title": "Command Groups",
+  "testCount": 4,
+  "hints": [
+    {
+      "title": "Implementing RunOnceCommand",
+      "content": "Same pattern as DriveCommand from the previous lesson: `initialize()` calls `motor.setPower(power)`, `execute()` does nothing, `isFinished()` returns `true`, and `end(boolean interrupted)` calls `motor.setPower(0.0)`."
+    },
+    {
+      "title": "Building the SequentialCommandGroup",
+      "content": "Create an instance: `new SequentialCommandGroup(new RunOnceCommand(motorA, 1.0), new RunOnceCommand(motorB, 0.5))`. The group's `initialize()` starts the first command. Each call to `execute()` advances whichever command is current."
+    },
+    {
+      "title": "How many times to call scheduler.run()?",
+      "content": "Each `scheduler.run()` call ticks the group once. The first tick: the group runs command 1 (`execute()` + `isFinished()` true → `end()` → advance to command 2 and `initialize()` it). The second tick: the group runs command 2 the same way. Call `scheduler.run()` twice."
+    },
+    {
+      "title": "Expected final state",
+      "content": "After two scheduler ticks: motorA was set to 1.0 then stopped at 0.0, motorB was set to 0.5 then stopped at 0.0. Both call logs should contain `setPower(1.0)` / `setPower(0.5)` and then `setPower(0.0)`."
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Autonomous Patterns",
+  "slug": "08-autonomous-patterns",
+  "order": 9,
+  "description": "Non-blocking timing, encoder-driven movement, and IMU-guided turning for reliable autonomous routines."
+}
