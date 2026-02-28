@@ -8,6 +8,7 @@
     "build": "node scripts/generate-ftc-completions.mjs && next build",
     "generate:completions": "node scripts/generate-ftc-completions.mjs",
     "start": "next start",
+    "test": "bun test tests/",
     "lint": "eslint .",
     "setup:ftc-template": "node scripts/download-ftc-template.mjs",
     "docker:build-sandbox": "docker build -t ftc-java-sandbox -f docker/java-sandbox/Dockerfile .",

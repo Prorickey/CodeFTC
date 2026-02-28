@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile, copyFile, rm, mkdir } from "node:fs/promises"
+import { mkdtemp, writeFile, copyFile, rm, mkdir, chmod } from "node:fs/promises"
 import { join } from "node:path"
 import type { Exercise, ExecutionResult } from "./types"
 import { runInSandbox, isDockerAvailable, isSandboxImageBuilt } from "./docker"
@@ -19,7 +19,7 @@ export async function executeCode(
   if (!(await isSandboxImageBuilt())) {
     return {
       success: false,
-      compilationError: 'Sandbox image not built. Run "bun run docker:build-sandbox" first.',
+      compilationError: "Sandbox image not available. Please ensure the sandbox image is pulled.",
       testResults: [],
     }
   }
@@ -27,6 +27,9 @@ export async function executeCode(
   const tmpBase = process.env.EXEC_TMP_DIR ?? join(process.cwd(), ".tmp-exec")
   await mkdir(tmpBase, { recursive: true })
   const workDir = await mkdtemp(join(tmpBase, "run-"))
+  // mkdtemp creates dirs with 0700; the sandbox container runs as a different
+  // user, so we need 0755 so it can read and enter the directory.
+  await chmod(workDir, 0o755)
 
   try {
     // Write student code
@@ -41,7 +44,10 @@ export async function executeCode(
     )
     await copyFile(testSrcPath, join(workDir, "Test.java"))
 
-    await mkdir(join(workDir, "out"), { recursive: true })
+    const outDir = join(workDir, "out")
+    await mkdir(outDir, { recursive: true })
+    // The sandbox user needs write access to compile class files into out/.
+    await chmod(outDir, 0o777)
 
     const rawOutput = await runInSandbox(workDir)
 

@@ -15,7 +15,7 @@ function getDockerSocket(): string {
 
 const docker = new Docker({ socketPath: getDockerSocket() })
 
-const SANDBOX_IMAGE = "ftc-java-sandbox"
+const SANDBOX_IMAGE = "docker.bedson.tech/codeftc-java-sandbox:latest"
 const MEMORY_LIMIT = 256 * 1024 * 1024 // 256MB
 const CPU_QUOTA = 50000 // 50% of one CPU
 const CPU_PERIOD = 100000

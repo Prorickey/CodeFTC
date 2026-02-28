@@ -12,6 +12,12 @@ services:
     volumes:
       - codeftc_postgres_data:/var/lib/postgresql/data
 
+  ftc-java-sandbox:
+    image: docker.bedson.tech/codeftc-java-sandbox:latest
+    pull_policy: always
+    entrypoint: ["true"]
+    restart: "no"
+
   nextjs:
     image: docker.bedson.tech/tbedson/codeftc-nextjs:latest
     container_name: codeftc-nextjs
