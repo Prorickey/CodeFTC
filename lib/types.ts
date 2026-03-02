@@ -48,6 +48,7 @@ export interface LessonData {
   lesson: LessonMeta
   content: string
   exercise: Exercise
+  testCode: string
   prev: { moduleSlug: string; lessonSlug: string } | null
   next: { moduleSlug: string; lessonSlug: string } | null
 }
