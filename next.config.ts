@@ -4,7 +4,7 @@ import createMDX from "@next/mdx"
 const nextConfig: NextConfig = {
   output: "standalone",
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
-  serverExternalPackages: ["dockerode", "@prisma/client", "prisma"],
+  serverExternalPackages: ["@prisma/client", "prisma"],
 }
 
 const withMDX = createMDX({})

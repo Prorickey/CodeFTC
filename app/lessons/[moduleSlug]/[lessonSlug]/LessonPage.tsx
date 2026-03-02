@@ -10,6 +10,8 @@ import { CodeEditor } from "@/components/editor/CodeEditor"
 import { EditorToolbar } from "@/components/editor/EditorToolbar"
 import { OutputPanel } from "@/components/editor/OutputPanel"
 import { HintAccordion } from "@/components/ui/HintAccordion"
+import { useCheerpJ } from "@/lib/cheerpj-context"
+import { executeInBrowser } from "@/lib/cheerpj-executor"
 import type { LessonData, SidebarModule, ExecutionResult } from "@/lib/types"
 
 interface LessonPageProps {
@@ -17,7 +19,6 @@ interface LessonPageProps {
   modules: SidebarModule[]
   moduleSlug: string
   lessonSlug: string
-  isAuthenticated: boolean
   userId: string | null
 }
 
@@ -44,11 +45,12 @@ export function LessonPage({
   modules,
   moduleSlug,
   lessonSlug,
-  isAuthenticated,
   userId,
 }: LessonPageProps) {
   const lessonId = getLessonId(moduleSlug, lessonSlug)
   const storageKey = getStorageKey(moduleSlug, lessonSlug)
+
+  const { status: cheerpjStatus } = useCheerpJ()
 
   const [code, setCode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -152,35 +154,55 @@ export function LessonPage({
   }, [moduleSlug, lessonSlug])
 
   const handleRun = useCallback(async () => {
+    if (cheerpjStatus !== "ready") {
+      setResult({
+        success: false,
+        runtimeError: cheerpjStatus === "loading"
+          ? "Java runtime is still loading — please wait a moment and try again"
+          : "Java runtime failed to load. Try refreshing the page.",
+        testResults: [],
+      })
+      return
+    }
+
     setIsRunning(true)
     setResult(null)
 
     try {
-      const response = await fetch("/api/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, lessonId }),
-      })
-      const data = await response.json() as ExecutionResult
-      setResult(data)
+      const execResult = await executeInBrowser(
+        code,
+        data.testCode,
+      )
+      setResult(execResult)
+
       // Persist test progress to localStorage so sidebar can show it
-      if (data.testResults.length > 0) {
-        const passed = data.testResults.filter((t) => t.passed).length
-        const total = data.testResults.length
+      if (execResult.testResults.length > 0) {
+        const passed = execResult.testResults.filter((t) => t.passed).length
+        const total = execResult.testResults.length
         localStorage.setItem(`ftc-tests:${lessonId}`, JSON.stringify({ passed, total }))
         window.dispatchEvent(new Event("ftc-tests-updated"))
       }
+
+      // Fire analytics (non-blocking)
+      fetch("/api/analytics/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lessonId,
+          allPassed: execResult.testResults.length > 0 && execResult.testResults.every((t) => t.passed),
+        }),
+      }).catch(() => {})
     } catch (err) {
       setResult({
         success: false,
         runtimeError:
-          err instanceof Error ? err.message : "Failed to connect to server",
+          err instanceof Error ? err.message : "Execution failed unexpectedly",
         testResults: [],
       })
     } finally {
       setIsRunning(false)
     }
-  }, [code, lessonId])
+  }, [code, lessonId, data.testCode, cheerpjStatus])
 
   const handleReset = useCallback(() => {
     setCode(data.exercise.starterCode)
@@ -275,7 +297,6 @@ export function LessonPage({
                   onCollapse={() => setEditorCollapsed(true)}
                   showingSolution={showingSolution}
                   isRunning={isRunning}
-                  isAuthenticated={isAuthenticated}
                   code={code}
                 />
                 <div className="relative flex-1 overflow-hidden">

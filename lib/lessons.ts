@@ -115,9 +115,10 @@ export async function getLessonData(
   // Load exercise
   const exerciseRaw = await readFile(join(lessonPath, "exercise.json"), "utf-8")
   const exerciseFile = JSON.parse(exerciseRaw) as ExerciseFile
-  const [starterCode, solutionCode] = await Promise.all([
+  const [starterCode, solutionCode, testCode] = await Promise.all([
     readFile(join(lessonPath, "Starter.java"), "utf-8"),
     readFile(join(lessonPath, "Solution.java"), "utf-8"),
+    readFile(join(lessonPath, "Test.java"), "utf-8"),
   ])
   const exercise: Exercise = { ...exerciseFile, starterCode, solutionCode }
 
@@ -138,6 +139,7 @@ export async function getLessonData(
     lesson: currentLesson,
     content,
     exercise,
+    testCode,
     prev: currentIndex > 0 ? allLessons[currentIndex - 1]! : null,
     next:
       currentIndex < allLessons.length - 1

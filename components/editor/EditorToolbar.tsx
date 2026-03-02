@@ -1,8 +1,6 @@
 "use client"
 
-import { Play, RotateCcw, Eye, EyeOff, LogIn, PanelRightClose } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Play, RotateCcw, Eye, EyeOff, PanelRightClose } from "lucide-react"
 import { DownloadButton } from "./DownloadButton"
 
 interface EditorToolbarProps {
@@ -12,7 +10,6 @@ interface EditorToolbarProps {
   onCollapse: () => void
   showingSolution: boolean
   isRunning: boolean
-  isAuthenticated: boolean
   code: string
 }
 
@@ -23,37 +20,25 @@ export function EditorToolbar({
   onCollapse,
   showingSolution,
   isRunning,
-  isAuthenticated,
   code,
 }: EditorToolbarProps) {
-  const pathname = usePathname()
 
   return (
     <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
       {!showingSolution && (
         <>
-          {isAuthenticated ? (
-            <button
-              onClick={onRun}
-              disabled={isRunning}
-              className="flex items-center gap-1.5 rounded-md bg-[var(--color-success)] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isRunning ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              <span>{isRunning ? "Running..." : "Run"}</span>
-            </button>
-          ) : (
-            <Link
-              href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
-              className="flex items-center gap-1.5 rounded-md border border-[var(--color-success)]/40 bg-[var(--color-success)]/20 px-3 py-1.5 text-sm font-medium text-[var(--color-success)] transition-colors hover:bg-[var(--color-success)]/30"
-            >
-              <LogIn className="h-4 w-4" />
-              <span>Sign in to Run</span>
-            </Link>
-          )}
+          <button
+            onClick={onRun}
+            disabled={isRunning}
+            className="flex items-center gap-1.5 rounded-md bg-[var(--color-success)] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isRunning ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            <span>{isRunning ? "Running..." : "Run"}</span>
+          </button>
 
           <button
             onClick={onReset}

@@ -28,7 +28,6 @@ export default async function LessonRoute({ params }: Props) {
       modules={modules}
       moduleSlug={moduleSlug}
       lessonSlug={lessonSlug}
-      isAuthenticated={!!session}
       userId={session?.user?.id ?? null}
     />
   )
