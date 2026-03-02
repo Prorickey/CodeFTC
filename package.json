@@ -9,6 +9,7 @@
     "generate:completions": "node scripts/generate-ftc-completions.mjs",
     "start": "next start",
     "test": "bun test tests/",
+    "test:e2e": "playwright test e2e/",
     "lint": "eslint .",
     "setup:ftc-template": "node scripts/download-ftc-template.mjs",
     "build:cheerpj": "bash scripts/build-cheerpj-assets.sh",
