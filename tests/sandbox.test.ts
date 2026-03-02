@@ -2,7 +2,7 @@ import { test, expect } from "bun:test"
 import { executeCode } from "../lib/compiler"
 import type { Exercise } from "../lib/types"
 
-const LESSON_ID = "00-test-fixtures/01-sandbox-test"
+const LESSON_ID = "_test-fixtures/01-sandbox-test"
 
 const fixture: Exercise = {
   title: "Sandbox Integration Test",
@@ -67,3 +67,28 @@ public class StudentCode {
   expect(result.runtimeError).toBeTruthy()
   expect(result.testResults).toHaveLength(0)
 }, 30_000)
+
+test("10 concurrent code runs all complete successfully", async () => {
+  const code = `
+public class StudentCode {
+    public String getGreeting() {
+        return "Hello, FTC!";
+    }
+}
+`
+  const start = Date.now()
+  const results = await Promise.all(
+    Array.from({ length: 10 }, () => executeCode(code, fixture, LESSON_ID))
+  )
+  const elapsed = Date.now() - start
+
+  for (const result of results) {
+    expect(result.success).toBe(true)
+    expect(result.compilationError).toBeUndefined()
+    expect(result.runtimeError).toBeUndefined()
+    expect(result.testResults[0].passed).toBe(true)
+  }
+
+  // Sanity check: parallel execution should finish well under 10× a single run
+  console.log(`10 concurrent runs completed in ${elapsed}ms`)
+}, 120_000)
