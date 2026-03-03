@@ -1,21 +1,31 @@
-import type { ExecutionResult } from "./types"
+import type { ExecutionResult, Language } from "./types"
 
-const COMPILE_TIMEOUT_MS = 30_000
+const JAVA_COMPILE_TIMEOUT_MS = 30_000
+const KOTLIN_COMPILE_TIMEOUT_MS = 60_000
 const RUN_TIMEOUT_MS = 15_000
 
 const STUBS_JAR = "/app/cheerpj/ftc-stubs.jar"
 const TOOLS_JAR = "/app/cheerpj/tools.jar"
+const KOTLIN_COMPILER_JAR = "/app/cheerpj/kotlin-compiler-embeddable.jar"
+const KOTLIN_STDLIB_JAR = "/app/cheerpj/kotlin-stdlib.jar"
+
 const COMPILE_CP = `${TOOLS_JAR}:${STUBS_JAR}`
-const RUN_CP = `${STUBS_JAR}:/files/`
+const RUN_CP_JAVA = `${STUBS_JAR}:/files/`
+const RUN_CP_KOTLIN = `${KOTLIN_STDLIB_JAR}:${STUBS_JAR}:/files/`
 
 /**
- * Compile and execute Java code entirely in the browser using CheerpJ.
+ * Compile and execute code entirely in the browser using CheerpJ.
  *
- * Flow:
+ * Java flow:
  *  1. Write StudentCode.java and Test.java to CheerpJ's virtual FS
- *  2. Invoke javac (com.sun.tools.javac.Main) to compile both files
- *  3. If compilation succeeds, run Test.main()
- *  4. Parse the JSON test results from captured console output
+ *  2. Invoke javac to compile both files
+ *  3. Run Test.main()
+ *
+ * Kotlin flow:
+ *  1. Write StudentCode.kt and Test.java to CheerpJ's virtual FS
+ *  2. Invoke K2JVMCompiler to compile StudentCode.kt
+ *  3. Invoke javac to compile Test.java (with /files/ on classpath to see Kotlin output)
+ *  4. Run Test.main() with kotlin-stdlib on the runtime classpath
  *
  * In CheerpJ 3.0, System.out.println goes to console.log, so we intercept
  * console.log to capture the output.
@@ -23,6 +33,7 @@ const RUN_CP = `${STUBS_JAR}:/files/`
 export async function executeInBrowser(
   studentCode: string,
   testCode: string,
+  language: Language = "java",
 ): Promise<ExecutionResult> {
   const encoder = new TextEncoder()
 
@@ -33,8 +44,21 @@ export async function executeInBrowser(
     ? cheerpOSAddStringFile
     : cheerpjAddStringFile
 
-  addFile("/str/StudentCode.java", encoder.encode(studentCode))
   addFile("/str/Test.java", encoder.encode(testCode))
+
+  if (language === "kotlin") {
+    return executeKotlin(studentCode, addFile, encoder)
+  }
+
+  return executeJava(studentCode, addFile, encoder)
+}
+
+async function executeJava(
+  studentCode: string,
+  addFile: (path: string, data: Uint8Array) => void,
+  encoder: TextEncoder,
+): Promise<ExecutionResult> {
+  addFile("/str/StudentCode.java", encoder.encode(studentCode))
 
   // ── Compile ──────────────────────────────────────────────────────────
   const compileLog = createConsoleCapture()
@@ -49,7 +73,7 @@ export async function executeInBrowser(
         "/str/StudentCode.java",
         "/str/Test.java"
       ),
-      COMPILE_TIMEOUT_MS
+      JAVA_COMPILE_TIMEOUT_MS
     )
   } catch {
     compileLog.restore()
@@ -70,12 +94,92 @@ export async function executeInBrowser(
     }
   }
 
-  // ── Execute ──────────────────────────────────────────────────────────
+  return runTests(RUN_CP_JAVA)
+}
+
+async function executeKotlin(
+  studentCode: string,
+  addFile: (path: string, data: Uint8Array) => void,
+  encoder: TextEncoder,
+): Promise<ExecutionResult> {
+  addFile("/str/StudentCode.kt", encoder.encode(studentCode))
+
+  // ── Step 1: Compile Kotlin ────────────────────────────────────────────
+  const kotlinLog = createConsoleCapture()
+  let kotlinExit: number
+  try {
+    kotlinExit = await withTimeout(
+      cheerpjRunMain(
+        "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler",
+        KOTLIN_COMPILER_JAR,
+        "-no-stdlib",
+        "-cp", `${KOTLIN_STDLIB_JAR}:${STUBS_JAR}`,
+        "-d", "/files/",
+        "/str/StudentCode.kt"
+      ),
+      KOTLIN_COMPILE_TIMEOUT_MS
+    )
+  } catch {
+    kotlinLog.restore()
+    return {
+      success: false,
+      compilationError: "Kotlin compilation timed out (60 second limit)",
+      timeout: true,
+      testResults: [],
+    }
+  }
+  const kotlinOutput = kotlinLog.restore()
+
+  if (kotlinExit !== 0) {
+    return {
+      success: false,
+      compilationError: kotlinOutput || "Kotlin compilation failed",
+      testResults: [],
+    }
+  }
+
+  // ── Step 2: Compile Test.java (needs /files/ on classpath for Kotlin output) ──
+  const javacLog = createConsoleCapture()
+  let javacExit: number
+  try {
+    javacExit = await withTimeout(
+      cheerpjRunMain(
+        "com.sun.tools.javac.Main",
+        COMPILE_CP,
+        "-d", "/files/",
+        "-cp", `${STUBS_JAR}:/files/`,
+        "/str/Test.java"
+      ),
+      JAVA_COMPILE_TIMEOUT_MS
+    )
+  } catch {
+    javacLog.restore()
+    return {
+      success: false,
+      compilationError: "Test compilation timed out (30 second limit)",
+      timeout: true,
+      testResults: [],
+    }
+  }
+  const javacOutput = javacLog.restore()
+
+  if (javacExit !== 0) {
+    return {
+      success: false,
+      compilationError: javacOutput || "Test compilation failed",
+      testResults: [],
+    }
+  }
+
+  return runTests(RUN_CP_KOTLIN)
+}
+
+async function runTests(classpath: string): Promise<ExecutionResult> {
   const runLog = createConsoleCapture()
   let runExit: number
   try {
     runExit = await withTimeout(
-      cheerpjRunMain("Test", RUN_CP),
+      cheerpjRunMain("Test", classpath),
       RUN_TIMEOUT_MS
     )
   } catch {

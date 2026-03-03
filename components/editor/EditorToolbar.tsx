@@ -2,6 +2,7 @@
 
 import { Play, RotateCcw, Eye, EyeOff, PanelRightClose } from "lucide-react"
 import { DownloadButton } from "./DownloadButton"
+import type { Language } from "@/lib/types"
 
 interface EditorToolbarProps {
   onRun: () => void
@@ -11,6 +12,9 @@ interface EditorToolbarProps {
   showingSolution: boolean
   isRunning: boolean
   code: string
+  language: Language
+  onLanguageChange: (language: Language) => void
+  hasKotlin: boolean
 }
 
 export function EditorToolbar({
@@ -21,6 +25,9 @@ export function EditorToolbar({
   showingSolution,
   isRunning,
   code,
+  language,
+  onLanguageChange,
+  hasKotlin,
 }: EditorToolbarProps) {
 
   return (
@@ -51,9 +58,36 @@ export function EditorToolbar({
         </>
       )}
 
+      {hasKotlin && (
+        <div className="flex rounded-md border border-[var(--color-border)] bg-[var(--color-surface-hover)] text-sm">
+          <button
+            onClick={() => onLanguageChange("java")}
+            disabled={isRunning}
+            className={`px-2.5 py-1 rounded-l-md transition-colors disabled:cursor-not-allowed ${
+              language === "java"
+                ? "bg-[var(--color-accent)] text-white"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            }`}
+          >
+            Java
+          </button>
+          <button
+            onClick={() => onLanguageChange("kotlin")}
+            disabled={isRunning}
+            className={`px-2.5 py-1 rounded-r-md transition-colors disabled:cursor-not-allowed ${
+              language === "kotlin"
+                ? "bg-[var(--color-accent)] text-white"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            }`}
+          >
+            Kotlin
+          </button>
+        </div>
+      )}
+
       <div className="flex-1" />
 
-      <DownloadButton code={code} />
+      <DownloadButton code={code} language={language} />
 
       <button
         onClick={onToggleSolution}

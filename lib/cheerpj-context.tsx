@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -9,9 +10,12 @@ import {
 } from "react"
 
 type CheerpJStatus = "loading" | "ready" | "error"
+type KotlinStatus = "idle" | "loading" | "ready" | "error"
 
 interface CheerpJContextValue {
   status: CheerpJStatus
+  kotlinStatus: KotlinStatus
+  loadKotlin: () => void
 }
 
 const CheerpJContext = createContext<CheerpJContextValue | null>(null)
@@ -43,8 +47,27 @@ function getInitPromise(): Promise<void> {
   return initPromise
 }
 
+// Preload Kotlin compiler JAR by fetching it into browser cache.
+// CheerpJ lazy-loads JARs on first classpath reference, but pre-fetching
+// avoids stalling the compile step on first Kotlin use.
+let kotlinLoadPromise: Promise<void> | null = null
+
+function getKotlinLoadPromise(): Promise<void> {
+  if (!kotlinLoadPromise) {
+    kotlinLoadPromise = (async () => {
+      const urls = [
+        "/cheerpj/kotlin-compiler-embeddable.jar",
+        "/cheerpj/kotlin-stdlib.jar",
+      ]
+      await Promise.all(urls.map((url) => fetch(url)))
+    })()
+  }
+  return kotlinLoadPromise
+}
+
 export function CheerpJProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<CheerpJStatus>("loading")
+  const [kotlinStatus, setKotlinStatus] = useState<KotlinStatus>("idle")
 
   useEffect(() => {
     getInitPromise()
@@ -55,8 +78,19 @@ export function CheerpJProvider({ children }: { children: ReactNode }) {
       })
   }, [])
 
+  const loadKotlin = useCallback(() => {
+    if (kotlinStatus !== "idle") return
+    setKotlinStatus("loading")
+    getKotlinLoadPromise()
+      .then(() => setKotlinStatus("ready"))
+      .catch((err) => {
+        console.error("[CheerpJ] Kotlin load failed:", err)
+        setKotlinStatus("error")
+      })
+  }, [kotlinStatus])
+
   return (
-    <CheerpJContext.Provider value={{ status }}>
+    <CheerpJContext.Provider value={{ status, kotlinStatus, loadKotlin }}>
       {children}
     </CheerpJContext.Provider>
   )

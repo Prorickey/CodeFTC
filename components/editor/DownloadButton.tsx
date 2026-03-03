@@ -2,17 +2,23 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Download, Copy, FileCode, FolderArchive, Check, Loader2 } from "lucide-react"
+import type { Language } from "@/lib/types"
 
 interface DownloadButtonProps {
   code: string
+  language?: Language
 }
 
-function extractClassName(code: string): string {
+function extractClassName(code: string, language: Language): string {
+  if (language === "kotlin") {
+    const match = code.match(/class\s+(\w+)/)
+    return match ? match[1] : "MyOpMode"
+  }
   const match = code.match(/public\s+class\s+(\w+)/)
   return match ? match[1] : "MyOpMode"
 }
 
-export function DownloadButton({ code }: DownloadButtonProps) {
+export function DownloadButton({ code, language = "java" }: DownloadButtonProps) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [downloadingProject, setDownloadingProject] = useState(false)
@@ -37,12 +43,13 @@ export function DownloadButton({ code }: DownloadButtonProps) {
   }
 
   function handleDownloadFile() {
-    const className = extractClassName(code)
+    const className = extractClassName(code, language)
+    const ext = language === "kotlin" ? "kt" : "java"
     const blob = new Blob([code], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${className}.java`
+    a.download = `${className}.${ext}`
     a.click()
     URL.revokeObjectURL(url)
     setOpen(false)
@@ -52,7 +59,7 @@ export function DownloadButton({ code }: DownloadButtonProps) {
     setOpen(false)
     setDownloadingProject(true)
     try {
-      const className = extractClassName(code)
+      const className = extractClassName(code, language)
       const response = await fetch("/api/download-project", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

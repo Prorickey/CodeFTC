@@ -13,7 +13,7 @@ import { OutputPanel } from "@/components/editor/OutputPanel"
 import { HintAccordion } from "@/components/ui/HintAccordion"
 import { useCheerpJ } from "@/lib/cheerpj-context"
 import { executeInBrowser } from "@/lib/cheerpj-executor"
-import type { LessonData, SidebarModule, ExecutionResult } from "@/lib/types"
+import type { LessonData, SidebarModule, ExecutionResult, Language } from "@/lib/types"
 
 interface LessonPageProps {
   data: LessonData
@@ -27,8 +27,13 @@ function getLessonId(moduleSlug: string, lessonSlug: string) {
   return `${moduleSlug}/${lessonSlug}`
 }
 
-function getStorageKey(moduleSlug: string, lessonSlug: string) {
-  return `ftc-code:${getLessonId(moduleSlug, lessonSlug)}`
+function getStorageKey(moduleSlug: string, lessonSlug: string, language: Language) {
+  const base = `ftc-code:${getLessonId(moduleSlug, lessonSlug)}`
+  return language === "kotlin" ? `${base}:kt` : base
+}
+
+function getLanguageStorageKey(moduleSlug: string, lessonSlug: string) {
+  return `ftc-lang:${getLessonId(moduleSlug, lessonSlug)}`
 }
 
 // Debounce helper
@@ -49,16 +54,38 @@ export function LessonPage({
   userId,
 }: LessonPageProps) {
   const lessonId = getLessonId(moduleSlug, lessonSlug)
-  const storageKey = getStorageKey(moduleSlug, lessonSlug)
+  const hasKotlin = data.exercise.starterCodeKotlin !== null
 
-  const { status: cheerpjStatus } = useCheerpJ()
+  const { status: cheerpjStatus, loadKotlin } = useCheerpJ()
+
+  const [language, setLanguage] = useState<Language>(() => {
+    if (typeof window !== "undefined" && hasKotlin) {
+      const saved = localStorage.getItem(getLanguageStorageKey(moduleSlug, lessonSlug))
+      if (saved === "kotlin") return "kotlin"
+    }
+    return "java"
+  })
+
+  const storageKey = getStorageKey(moduleSlug, lessonSlug, language)
+
+  function getStarterCode(lang: Language) {
+    return lang === "kotlin"
+      ? (data.exercise.starterCodeKotlin ?? data.exercise.starterCode)
+      : data.exercise.starterCode
+  }
+
+  function getSolutionCode(lang: Language) {
+    return lang === "kotlin"
+      ? (data.exercise.solutionCodeKotlin ?? data.exercise.solutionCode)
+      : data.exercise.solutionCode
+  }
 
   const [code, setCode] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(storageKey)
       if (saved) return saved
     }
-    return data.exercise.starterCode
+    return getStarterCode(language)
   })
   const [result, setResult] = useState<ExecutionResult | null>(null)
   const [isRunning, setIsRunning] = useState(false)
@@ -99,9 +126,21 @@ export function LessonPage({
     setIsRunning(false)
     setShowingSolution(false)
 
+    // Reset language to saved preference or Java
+    const newHasKotlin = data.exercise.starterCodeKotlin !== null
+    const savedLang = newHasKotlin
+      ? localStorage.getItem(getLanguageStorageKey(moduleSlug, lessonSlug))
+      : null
+    const newLang: Language = savedLang === "kotlin" ? "kotlin" : "java"
+    setLanguage(newLang)
+
     // Load code: start with localStorage, then fetch DB if logged in
-    const localSaved = localStorage.getItem(storageKey)
-    setCode(localSaved ?? data.exercise.starterCode)
+    const key = getStorageKey(moduleSlug, lessonSlug, newLang)
+    const localSaved = localStorage.getItem(key)
+    const starter = newLang === "kotlin"
+      ? (data.exercise.starterCodeKotlin ?? data.exercise.starterCode)
+      : data.exercise.starterCode
+    setCode(localSaved ?? starter)
 
     if (userId) {
       fetch(`/api/progress?lessonId=${encodeURIComponent(lessonId)}`)
@@ -109,16 +148,16 @@ export function LessonPage({
         .then(({ code: dbCode }: { code: string | null }) => {
           if (dbCode !== null) {
             setCode(dbCode)
-            localStorage.setItem(storageKey, dbCode)
+            localStorage.setItem(key, dbCode)
           }
           dbLoadedRef.current = true
-          lastSavedRef.current = dbCode ?? (localSaved ?? data.exercise.starterCode)
+          lastSavedRef.current = dbCode ?? (localSaved ?? starter)
         })
         .catch(() => { dbLoadedRef.current = true })
     } else {
       dbLoadedRef.current = true
     }
-  }, [lessonId, storageKey, data.exercise.starterCode, userId])
+  }, [lessonId, moduleSlug, lessonSlug, data.exercise.starterCode, data.exercise.starterCodeKotlin, userId])
 
   // Load from DB on first mount for logged-in users
   useEffect(() => {
@@ -154,6 +193,34 @@ export function LessonPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleSlug, lessonSlug])
 
+  const handleLanguageChange = useCallback((newLang: Language) => {
+    if (newLang === language) return
+
+    // Save current code under current language key
+    localStorage.setItem(getStorageKey(moduleSlug, lessonSlug, language), code)
+
+    // Switch language
+    setLanguage(newLang)
+    localStorage.setItem(getLanguageStorageKey(moduleSlug, lessonSlug), newLang)
+
+    // Load code for new language
+    const newKey = getStorageKey(moduleSlug, lessonSlug, newLang)
+    const saved = localStorage.getItem(newKey)
+    const starter = newLang === "kotlin"
+      ? (data.exercise.starterCodeKotlin ?? data.exercise.starterCode)
+      : data.exercise.starterCode
+    setCode(saved ?? starter)
+
+    // Clear results when switching languages
+    setResult(null)
+    setShowingSolution(false)
+
+    // Preload Kotlin compiler on first switch
+    if (newLang === "kotlin") {
+      loadKotlin()
+    }
+  }, [language, code, moduleSlug, lessonSlug, data.exercise.starterCodeKotlin, data.exercise.starterCode, loadKotlin])
+
   const handleRun = useCallback(async () => {
     if (cheerpjStatus !== "ready") {
       setResult({
@@ -173,6 +240,7 @@ export function LessonPage({
       const execResult = await executeInBrowser(
         code,
         data.testCode,
+        language,
       )
       setResult(execResult)
 
@@ -190,6 +258,7 @@ export function LessonPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lessonId,
+          language,
           allPassed: execResult.testResults.length > 0 && execResult.testResults.every((t) => t.passed),
         }),
       }).catch(() => {})
@@ -203,22 +272,24 @@ export function LessonPage({
     } finally {
       setIsRunning(false)
     }
-  }, [code, lessonId, data.testCode, cheerpjStatus])
+  }, [code, lessonId, data.testCode, cheerpjStatus, language])
 
   const handleReset = useCallback(() => {
-    setCode(data.exercise.starterCode)
+    const starter = getStarterCode(language)
+    setCode(starter)
     setResult(null)
     setShowingSolution(false)
     localStorage.removeItem(storageKey)
-    lastSavedRef.current = data.exercise.starterCode
+    lastSavedRef.current = starter
     if (userId) {
       fetch("/api/progress", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lessonId, code: data.exercise.starterCode }),
+        body: JSON.stringify({ lessonId, code: starter }),
       }).catch(() => {})
     }
-  }, [data.exercise.starterCode, storageKey, lessonId, userId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, storageKey, lessonId, userId, data.exercise.starterCode, data.exercise.starterCodeKotlin])
 
   const handleToggleSolution = useCallback(() => {
     setShowingSolution((prev) => {
@@ -232,6 +303,8 @@ export function LessonPage({
     trackEvent("hint_view", { hintIndex: index })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const solutionCode = getSolutionCode(language)
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -299,15 +372,18 @@ export function LessonPage({
                   showingSolution={showingSolution}
                   isRunning={isRunning}
                   code={code}
+                  language={language}
+                  onLanguageChange={handleLanguageChange}
+                  hasKotlin={hasKotlin}
                 />
                 <Group orientation="vertical" className="flex-1 overflow-hidden">
                   <Panel defaultSize={showingSolution ? "100%" : "65%"} minSize="20%">
                     <div className="relative h-full overflow-hidden">
                       <div className={`absolute inset-0 ${showingSolution ? "invisible pointer-events-none" : ""}`}>
-                        <CodeEditor value={code} onChange={setCode} />
+                        <CodeEditor value={code} onChange={setCode} language={language} />
                       </div>
                       <div className={`absolute inset-0 ${showingSolution ? "" : "invisible pointer-events-none"}`}>
-                        <CodeEditor value={data.exercise.solutionCode} onChange={() => {}} readOnly />
+                        <CodeEditor value={solutionCode} onChange={() => {}} language={language} readOnly />
                       </div>
                     </div>
                   </Panel>

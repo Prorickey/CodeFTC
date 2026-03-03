@@ -120,12 +120,14 @@ export async function getLessonData(
   // Load exercise
   const exerciseRaw = await readFile(join(lessonPath, "exercise.json"), "utf-8")
   const exerciseFile = JSON.parse(exerciseRaw) as ExerciseFile
-  const [starterCode, solutionCode, testCode] = await Promise.all([
+  const [starterCode, solutionCode, testCode, starterCodeKotlin, solutionCodeKotlin] = await Promise.all([
     readFile(join(lessonPath, "Starter.java"), "utf-8"),
     readFile(join(lessonPath, "Solution.java"), "utf-8"),
     readFile(join(lessonPath, "Test.java"), "utf-8"),
+    readFile(join(lessonPath, "Starter.kt"), "utf-8").catch(() => null),
+    readFile(join(lessonPath, "Solution.kt"), "utf-8").catch(() => null),
   ])
-  const exercise: Exercise = { ...exerciseFile, starterCode, solutionCode }
+  const exercise: Exercise = { ...exerciseFile, starterCode, solutionCode, starterCodeKotlin, solutionCodeKotlin }
 
   // Build flat list of all lessons for prev/next
   const allLessons: { moduleSlug: string; lessonSlug: string }[] = []

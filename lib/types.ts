@@ -14,11 +14,15 @@ export interface LessonMeta {
   description?: string
 }
 
+export type Language = "java" | "kotlin"
+
 export interface Exercise {
   title: string
   testCount: number
   starterCode: string
   solutionCode: string
+  starterCodeKotlin: string | null
+  solutionCodeKotlin: string | null
   hints: { title: string; content: string }[]
 }
 

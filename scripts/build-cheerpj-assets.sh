@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build CheerpJ assets: compile FTC stubs into a JAR (Java 8 target)
-# and download OpenJDK 8 tools.jar (contains javac for in-browser compilation).
+# Build CheerpJ assets: compile FTC stubs into a JAR (Java 8 target),
+# download OpenJDK 8 tools.jar (contains javac for in-browser compilation),
+# and download Kotlin compiler + stdlib JARs for in-browser Kotlin support.
 #
-# Output: public/cheerpj/ftc-stubs.jar, public/cheerpj/tools.jar
+# Output: public/cheerpj/ftc-stubs.jar, public/cheerpj/tools.jar,
+#         public/cheerpj/kotlin-compiler-embeddable.jar,
+#         public/cheerpj/kotlin-stdlib.jar
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -74,6 +77,33 @@ else
   cp "$TMP_DIR/$TOOLS_PATH" "$TOOLS_JAR"
 
   echo "    Created: $TOOLS_JAR"
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Download Kotlin compiler + stdlib JARs (for in-browser Kotlin support)
+# ---------------------------------------------------------------------------
+KOTLIN_VERSION="1.9.25"
+KOTLIN_COMPILER_JAR="$OUT_DIR/kotlin-compiler-embeddable.jar"
+KOTLIN_STDLIB_JAR="$OUT_DIR/kotlin-stdlib.jar"
+
+MAVEN_BASE="https://repo1.maven.org/maven2/org/jetbrains/kotlin"
+
+if [ -f "$KOTLIN_COMPILER_JAR" ]; then
+  echo "==> kotlin-compiler-embeddable.jar already exists, skipping download."
+else
+  echo "==> Downloading kotlin-compiler-embeddable-${KOTLIN_VERSION}.jar..."
+  curl -fSL -o "$KOTLIN_COMPILER_JAR" \
+    "${MAVEN_BASE}/kotlin-compiler-embeddable/${KOTLIN_VERSION}/kotlin-compiler-embeddable-${KOTLIN_VERSION}.jar"
+  echo "    Created: $KOTLIN_COMPILER_JAR"
+fi
+
+if [ -f "$KOTLIN_STDLIB_JAR" ]; then
+  echo "==> kotlin-stdlib.jar already exists, skipping download."
+else
+  echo "==> Downloading kotlin-stdlib-${KOTLIN_VERSION}.jar..."
+  curl -fSL -o "$KOTLIN_STDLIB_JAR" \
+    "${MAVEN_BASE}/kotlin-stdlib/${KOTLIN_VERSION}/kotlin-stdlib-${KOTLIN_VERSION}.jar"
+  echo "    Created: $KOTLIN_STDLIB_JAR"
 fi
 
 echo ""
