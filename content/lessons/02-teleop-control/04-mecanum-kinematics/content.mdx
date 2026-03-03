@@ -13,18 +13,9 @@ Each mecanum wheel has rollers mounted at a 45-degree angle to the wheel's axis.
 
 A standard mecanum drivetrain has four motors:
 
-```
-  Front Left (FL)    Front Right (FR)
-       \\                  /
-        \\                /
-         \\              /
-  Back Left (BL)     Back Right (BR)
-       /                  \\
-      /                    \\
-     /                      \\
-```
+<img src="/api/lesson-asset/02-teleop-control/03-mecanum-drive/force-diagram.png" alt="Mecanum wheel force diagram" style="width:100%;max-width:720px;" class="rounded-lg">
 
-The slash marks represent the roller angles. This specific arrangement is critical -- swapping wheels will break the kinematics.
+The arrows represent the force each wheel produces based on its roller angle. This specific arrangement is critical -- swapping wheels will break the kinematics.
 
 ## Forward and Inverse Kinematics
 

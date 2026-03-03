@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
+import { unstable_cache } from "next/cache"
 import matter from "gray-matter"
 import type {
   ModuleMeta,
@@ -12,23 +13,27 @@ import type {
 
 const CONTENT_DIR = join(process.cwd(), "content/lessons")
 
-export async function getModules(): Promise<SidebarModule[]> {
-  const entries = await readdir(CONTENT_DIR, { withFileTypes: true })
-  const moduleDirs = entries
-    .filter((e) => e.isDirectory() && !e.name.startsWith("_"))
-    .sort((a, b) => a.name.localeCompare(b.name))
+export const getModules = unstable_cache(
+  async (): Promise<SidebarModule[]> => {
+    const entries = await readdir(CONTENT_DIR, { withFileTypes: true })
+    const moduleDirs = entries
+      .filter((e) => e.isDirectory() && !e.name.startsWith("_"))
+      .sort((a, b) => a.name.localeCompare(b.name))
 
-  const modules: SidebarModule[] = []
+    const modules: SidebarModule[] = []
 
-  for (const dir of moduleDirs) {
-    const modulePath = join(CONTENT_DIR, dir.name)
-    const meta = await loadModuleMeta(modulePath, dir.name)
-    const lessons = await loadLessonMetas(modulePath, dir.name)
-    modules.push({ meta, lessons })
-  }
+    for (const dir of moduleDirs) {
+      const modulePath = join(CONTENT_DIR, dir.name)
+      const meta = await loadModuleMeta(modulePath, dir.name)
+      const lessons = await loadLessonMetas(modulePath, dir.name)
+      modules.push({ meta, lessons })
+    }
 
-  return modules
-}
+    return modules
+  },
+  ["modules"],
+  { revalidate: false }
+)
 
 async function loadModuleMeta(
   modulePath: string,

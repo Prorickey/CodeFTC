@@ -6,14 +6,27 @@ import { TestResults } from "@/components/ui/TestResults"
 interface OutputPanelProps {
   result: ExecutionResult | null
   isRunning: boolean
+  isLoggedIn?: boolean
 }
 
-export function OutputPanel({ result, isRunning }: OutputPanelProps) {
+export function OutputPanel({ result, isRunning, isLoggedIn }: OutputPanelProps) {
+  const showSignIn = !isLoggedIn && result !== null && !isRunning
+
   return (
-    <div className="flex-1 overflow-y-auto border-t border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-        Output
-      </h3>
+    <div className="h-full border-t border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <div className="mb-3 flex items-center gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+          Output
+        </h3>
+        {showSignIn && (
+          <a
+            href="/auth/signin"
+            className="rounded-md bg-[var(--color-accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-colors"
+          >
+            Sign in to save
+          </a>
+        )}
+      </div>
 
       {isRunning && (
         <div className="flex items-center gap-3 text-[var(--color-text-muted)]">

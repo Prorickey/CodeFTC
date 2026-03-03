@@ -65,6 +65,12 @@ function renderMarkdown(md: string): string {
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
   html = html.replace(/\*(.+?)\*/g, "<em>$1</em>")
 
+  // Images (must come before links)
+  html = html.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    '<img src="$2" alt="$1" class="rounded-lg">'
+  )
+
   // Links
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
@@ -81,7 +87,6 @@ function renderMarkdown(md: string): string {
       const headers = headerRow
         .split("|")
         .map((h: string) => h.trim())
-        .filter(Boolean)
       const rows = bodyRows
         .trim()
         .split("\n")

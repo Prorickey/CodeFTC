@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import { PanelLeftOpen, PanelRightOpen } from "lucide-react"
+import { Group, Panel, Separator } from "react-resizable-panels"
 import { LessonLayout } from "@/components/layout/LessonLayout"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { LessonContent } from "@/components/lesson/LessonContent"
@@ -299,17 +300,28 @@ export function LessonPage({
                   isRunning={isRunning}
                   code={code}
                 />
-                <div className="relative flex-1 overflow-hidden">
-                  <div className={`absolute inset-0 ${showingSolution ? "invisible pointer-events-none" : ""}`}>
-                    <CodeEditor value={code} onChange={setCode} />
-                  </div>
-                  <div className={`absolute inset-0 ${showingSolution ? "" : "invisible pointer-events-none"}`}>
-                    <CodeEditor value={data.exercise.solutionCode} onChange={() => {}} readOnly />
-                  </div>
-                </div>
-                <div className={`h-50 shrink-0 overflow-y-auto border-t border-(--color-border) ${showingSolution ? "hidden" : ""}`}>
-                  <OutputPanel result={result} isRunning={isRunning} />
-                </div>
+                <Group orientation="vertical" className="flex-1 overflow-hidden">
+                  <Panel defaultSize={showingSolution ? "100%" : "65%"} minSize="20%">
+                    <div className="relative h-full overflow-hidden">
+                      <div className={`absolute inset-0 ${showingSolution ? "invisible pointer-events-none" : ""}`}>
+                        <CodeEditor value={code} onChange={setCode} />
+                      </div>
+                      <div className={`absolute inset-0 ${showingSolution ? "" : "invisible pointer-events-none"}`}>
+                        <CodeEditor value={data.exercise.solutionCode} onChange={() => {}} readOnly />
+                      </div>
+                    </div>
+                  </Panel>
+                  {!showingSolution && (
+                    <>
+                      <Separator className="h-1.5 cursor-row-resize bg-[var(--color-border)] transition-colors hover:bg-[var(--color-accent)] active:bg-[var(--color-accent)]" />
+                      <Panel defaultSize="35%" minSize="10%">
+                        <div className="h-full overflow-y-auto">
+                          <OutputPanel result={result} isRunning={isRunning} isLoggedIn={!!userId} />
+                        </div>
+                      </Panel>
+                    </>
+                  )}
+                </Group>
               </>
             }
           />
