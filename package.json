@@ -47,6 +47,14 @@
     "recharts": "^3.8.1",
     "tailwindcss": "^4.2.2"
   },
+  "overrides": {
+    "dompurify": "^3.4.0",
+    "@hono/node-server": "^1.19.14",
+    "brace-expansion": "^2.0.2",
+    "defu": "^6.1.7",
+    "flatted": "^3.4.2",
+    "picomatch": "^4.0.4"
+  },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@tailwindcss/typography": "^0.5.19",
