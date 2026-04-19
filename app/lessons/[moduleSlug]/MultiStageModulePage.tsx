@@ -83,6 +83,7 @@ export function MultiStageModulePage({
   const lastSavedSerializedRef = useRef<string | null>(null)
   const codeRef = useRef(code)
   useEffect(() => { codeRef.current = code }, [code])
+  const handleJumpStageRef = useRef<((idx: number) => void) | null>(null)
 
   // Initialize editor buffer for the active stage.
   // Priority: persisted perStageCode -> per-stage Starter.java -> carry-forward -> module starter
@@ -201,6 +202,19 @@ export function MultiStageModulePage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStage, hydrated])
 
+  // React to external ?stage= changes (e.g. sidebar link clicks)
+  const stageParamValue = searchParams.get("stage")
+  useEffect(() => {
+    if (!hydrated) return
+    if (!stageParamValue) return
+    const n = Number(stageParamValue) - 1
+    if (!Number.isInteger(n)) return
+    const target = clampStage(n, totalStages)
+    if (target === currentStage) return
+    handleJumpStageRef.current?.(target)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageParamValue, hydrated])
+
   // Serialize + persist state (localStorage always; DB debounced for logged-in)
   const state: MultiStageProgressState = useMemo(
     () => ({
@@ -217,6 +231,7 @@ export function MultiStageModulePage({
   useEffect(() => {
     if (!hydrated) return
     localStorage.setItem(storageKey(moduleSlug), serialized)
+    window.dispatchEvent(new Event("ftc-tests-updated"))
   }, [hydrated, serialized, moduleSlug])
 
   const debouncedSerialized = useDebounce(serialized, 1500)
@@ -269,6 +284,10 @@ export function MultiStageModulePage({
     },
     [currentStage, perStageCode, initBufferForStage]
   )
+
+  useEffect(() => {
+    handleJumpStageRef.current = handleJumpStage
+  }, [handleJumpStage])
 
   const handleAdvance = useCallback(() => {
     if (!canAdvance) return

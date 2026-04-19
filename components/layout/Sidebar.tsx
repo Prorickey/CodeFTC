@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { ChevronRight, ChevronDown, BookOpen, Home, Menu, X, LogIn, LogOut, PanelLeftClose, BarChart2, Check, Layers } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import type { SidebarModule } from "@/lib/types"
@@ -168,6 +168,7 @@ function loadMultiStageProgress(modules: SidebarModule[]): MultiStageProgress {
 export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: SidebarProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(() => {
     const initial = new Set<string>()
@@ -279,13 +280,25 @@ export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: Sidebar
                 {isExpanded && (
                   <ul className="pb-1">
                     {mod.stages.map((stage, idx) => {
-                      const completedSet = new Set(progress?.completed ?? [])
+                      const completedArr = progress?.completed ?? []
+                      const completedSet = new Set(completedArr)
                       const isCompleted = completedSet.has(idx)
+                      const maxCompleted = completedArr.length
+                        ? Math.max(...completedArr)
+                        : -1
                       const savedStage = progress?.currentStage ?? 0
-                      const isCurrent =
+                      const urlStageRaw = searchParams.get("stage")
+                      const urlStage = urlStageRaw ? Number(urlStageRaw) - 1 : null
+                      const viewedStage =
                         mod.meta.slug === moduleSlug &&
-                        savedStage === idx
-                      const isUnlocked = isCompleted || idx <= savedStage
+                        urlStage !== null &&
+                        Number.isInteger(urlStage) &&
+                        urlStage >= 0
+                          ? urlStage
+                          : savedStage
+                      const isCurrent =
+                        mod.meta.slug === moduleSlug && viewedStage === idx
+                      const isUnlocked = isCompleted || idx <= maxCompleted + 1
                       return (
                         <li key={stage.slug}>
                           <Link
