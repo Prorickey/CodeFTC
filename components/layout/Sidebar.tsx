@@ -281,10 +281,11 @@ export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: Sidebar
                     {mod.stages.map((stage, idx) => {
                       const completedSet = new Set(progress?.completed ?? [])
                       const isCompleted = completedSet.has(idx)
+                      const savedStage = progress?.currentStage ?? 0
                       const isCurrent =
                         mod.meta.slug === moduleSlug &&
-                        (progress?.currentStage ?? 0) === idx
-                      const isUnlocked = isCompleted || isCurrent
+                        savedStage === idx
+                      const isUnlocked = isCompleted || idx <= savedStage
                       return (
                         <li key={stage.slug}>
                           <Link

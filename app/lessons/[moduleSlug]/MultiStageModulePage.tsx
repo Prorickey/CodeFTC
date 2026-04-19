@@ -424,7 +424,6 @@ export function MultiStageModulePage({
       stages={data.stages}
       current={currentStage}
       completed={completedStages}
-      onJump={handleJumpStage}
     />
   )
 

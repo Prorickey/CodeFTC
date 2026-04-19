@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import { Check, Lock } from "lucide-react"
 import type { Stage } from "@/lib/types"
 
@@ -14,33 +15,48 @@ export function ModuleStageStepper({
   stages,
   current,
   completed,
-  onJump,
 }: ModuleStageStepperProps) {
   const completedSet = new Set(completed)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [offset, setOffset] = useState(0)
+
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+    const el = track.children[current] as HTMLElement | undefined
+    if (!el) return
+    const viewport = track.parentElement
+    if (!viewport) return
+    const viewportWidth = viewport.clientWidth
+    const target = el.offsetLeft + el.offsetWidth / 2 - viewportWidth / 2
+    setOffset(-target)
+  }, [current, stages.length])
 
   return (
-    <ol className="flex flex-wrap items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3 lg:px-8">
-      {stages.map((stage, idx) => {
-        const isCurrent = idx === current
-        const isCompleted = completedSet.has(idx)
-        const isUnlocked = isCompleted || isCurrent
-        const state = isCompleted ? "completed" : isCurrent ? "current" : "locked"
+    <div className="relative overflow-hidden border-b border-[var(--color-border)] bg-[var(--color-surface)] py-3">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[var(--color-surface)] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[var(--color-surface)] to-transparent" />
+      <div
+        ref={trackRef}
+        className="flex items-center gap-3 transition-transform duration-500 ease-out"
+        style={{ transform: `translateX(${offset}px)`, willChange: "transform" }}
+      >
+        {stages.map((stage, idx) => {
+          const isCurrent = idx === current
+          const isCompleted = completedSet.has(idx)
+          const state = isCompleted ? "completed" : isCurrent ? "current" : "locked"
 
-        return (
-          <li key={stage.slug} className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={!isUnlocked}
-              onClick={() => isUnlocked && onJump(idx)}
+          return (
+            <div
+              key={stage.slug}
               aria-current={isCurrent ? "step" : undefined}
-              title={stage.title}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-500 ${
                 state === "completed"
-                  ? "border-[var(--color-success)] bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20"
+                  ? "border-[var(--color-success)] bg-[var(--color-success)]/10 text-[var(--color-success)]"
                   : state === "current"
-                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
-                    : "border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] opacity-60"
-              } ${isUnlocked ? "cursor-pointer" : "cursor-not-allowed"}`}
+                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)] scale-110 shadow-sm"
+                    : "border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)] opacity-50"
+              }`}
             >
               <span
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
@@ -59,20 +75,11 @@ export function ModuleStageStepper({
                   idx + 1
                 )}
               </span>
-              <span className="max-w-[160px] truncate">{stage.title}</span>
-            </button>
-            {idx < stages.length - 1 && (
-              <span
-                className={`h-px w-4 ${
-                  completedSet.has(idx)
-                    ? "bg-[var(--color-success)]"
-                    : "bg-[var(--color-border)]"
-                }`}
-              />
-            )}
-          </li>
-        )
-      })}
-    </ol>
+              <span className="max-w-[180px] truncate">{stage.title}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
