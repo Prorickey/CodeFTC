@@ -18,6 +18,7 @@ enum EventType {
   exercise_complete
   hint_view
   solution_view
+  stage_complete
 }
 
 model User {

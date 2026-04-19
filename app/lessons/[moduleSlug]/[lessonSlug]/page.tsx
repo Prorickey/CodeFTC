@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { getLessonData, getModules } from "@/lib/lessons"
 import { auth } from "@/auth"
 import { LessonPage } from "./LessonPage"
@@ -12,11 +12,13 @@ interface Props {
 
 export default async function LessonRoute({ params }: Props) {
   const { moduleSlug, lessonSlug } = await params
-  const [data, modules, session] = await Promise.all([
-    getLessonData(moduleSlug, lessonSlug),
-    getModules(),
-    auth(),
-  ])
+  const [modules, session] = await Promise.all([getModules(), auth()])
+  const mod = modules.find((m) => m.meta.slug === moduleSlug)
+  if (mod?.meta.type === "multistage") {
+    redirect(`/lessons/${moduleSlug}`)
+  }
+
+  const data = await getLessonData(moduleSlug, lessonSlug)
 
   if (!data) {
     notFound()

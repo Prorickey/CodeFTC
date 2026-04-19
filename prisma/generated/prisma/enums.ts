@@ -22,7 +22,8 @@ export const EventType = {
   code_run: 'code_run',
   exercise_complete: 'exercise_complete',
   hint_view: 'hint_view',
-  solution_view: 'solution_view'
+  solution_view: 'solution_view',
+  stage_complete: 'stage_complete'
 } as const
 
 export type EventType = (typeof EventType)[keyof typeof EventType]
