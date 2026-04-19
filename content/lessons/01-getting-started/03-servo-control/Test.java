@@ -6,6 +6,8 @@ public class Test {
         HardwareMap hwMap = new HardwareMap();
         ServoImpl testServo = new ServoImpl();
         hwMap.registerDevice("testServo", testServo);
+        DcMotorImpl testMotor = new DcMotorImpl();
+        hwMap.registerDevice("testMotor", testMotor);
 
         StudentCode op = new StudentCode();
         op.hardwareMap = hwMap;

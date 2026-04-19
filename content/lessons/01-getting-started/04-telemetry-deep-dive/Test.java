@@ -7,6 +7,8 @@ public class Test {
         HardwareMap hwMap = new HardwareMap();
         DcMotorImpl testMotor = new DcMotorImpl();
         hwMap.registerDevice("testMotor", testMotor);
+        ServoImpl testServo = new ServoImpl();
+        hwMap.registerDevice("testServo", testServo);
 
         TelemetryImpl telemetry = new TelemetryImpl();
 

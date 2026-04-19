@@ -86,15 +86,15 @@ export function MultiStageModulePage({
   const handleJumpStageRef = useRef<((idx: number) => void) | null>(null)
 
   // Initialize editor buffer for the active stage.
-  // Priority: persisted perStageCode -> per-stage Starter.java -> carry-forward -> module starter
+  // Priority: persisted perStageCode -> carry-forward from previous stage
+  // -> per-stage Starter.java -> module starter
   const initBufferForStage = useCallback(
     (nextIndex: number, state: { perStageCode: Record<string, string>; carryFrom?: string }) => {
       const saved = state.perStageCode[String(nextIndex)]
       if (saved !== undefined) return saved
+      if (state.carryFrom !== undefined) return state.carryFrom
       const stage = data.stages[nextIndex]
       if (stage?.starterCode !== undefined) return stage.starterCode
-      if (state.carryFrom !== undefined) return state.carryFrom
-      // First stage fallback
       return data.starterCode
     },
     [data.stages, data.starterCode]
