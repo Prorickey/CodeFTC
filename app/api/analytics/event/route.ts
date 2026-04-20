@@ -3,7 +3,12 @@ import { auth } from "@/auth"
 import { recordEvent } from "@/lib/analytics"
 import type { EventType } from "@/prisma/generated/prisma/client"
 
-const ALLOWED_TYPES: EventType[] = ["lesson_view", "hint_view", "solution_view"]
+const ALLOWED_TYPES: EventType[] = [
+  "lesson_view",
+  "hint_view",
+  "solution_view",
+  "stage_complete",
+]
 
 export async function POST(request: Request) {
   try {

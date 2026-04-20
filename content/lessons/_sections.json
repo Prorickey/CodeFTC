@@ -1,0 +1,8 @@
+{
+  "sections": [
+    { "title": "The Basics",         "modules": ["01-getting-started", "02-teleop-control", "03-hardware-essentials"] },
+    { "title": "Sensors & Feedback", "modules": ["04-sensors", "05-driving-with-the-imu", "06-encoders"] },
+    { "title": "Autonomy & Control", "modules": ["07-autonomous", "08-state-machines", "09-control-theory"] },
+    { "title": "Advanced Systems",   "modules": ["10-advanced-motor-control", "11-code-architecture", "12-advanced-control", "13-camera-vision", "14-odometry-and-localization"] }
+  ]
+}

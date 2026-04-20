@@ -46,6 +46,10 @@ next-env.d.ts
 # CheerpJ build artifacts (built with: bun run build:cheerpj)
 /public/cheerpj/
 
+# Playwright
+/test-results/
+/playwright-report/
+
 # IDE
 .idea
 .vscode

@@ -1,5 +1,6 @@
 {
   "title": "Getting Started",
   "order": 1,
-  "description": "Learn the fundamentals of FTC programming with OpModes and hardware."
+  "description": "Learn the fundamentals of FTC programming with OpModes and hardware.",
+  "type": "multistage"
 }

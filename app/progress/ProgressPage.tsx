@@ -2,27 +2,72 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import type { SidebarModule } from "@/lib/types"
+import type { ModuleSection, SidebarModule } from "@/lib/types"
 
-interface LessonProgress {
+interface ItemProgress {
   passed: number
   total: number
 }
 
-type AllProgress = Record<string, LessonProgress>
+type AllProgress = Record<string, ItemProgress>
 
 function loadAllProgress(modules: SidebarModule[]): AllProgress {
   const result: AllProgress = {}
   for (const mod of modules) {
+    if (mod.meta.type === "multistage") {
+      for (let i = 0; i < mod.stages.length; i++) {
+        const id = `${mod.meta.slug}#${i}`
+        try {
+          const raw = localStorage.getItem(`ftc-tests:${id}`)
+          if (raw) result[id] = JSON.parse(raw) as ItemProgress
+        } catch { /* ignore */ }
+      }
+      continue
+    }
     for (const lesson of mod.lessons) {
       const id = `${lesson.moduleSlug}/${lesson.slug}`
       try {
         const raw = localStorage.getItem(`ftc-tests:${id}`)
-        if (raw) result[id] = JSON.parse(raw) as LessonProgress
+        if (raw) result[id] = JSON.parse(raw) as ItemProgress
       } catch { /* ignore */ }
     }
   }
   return result
+}
+
+interface Row {
+  id: string
+  title: string
+  href: string
+  passed: number
+  total: number
+}
+
+function buildRows(mod: SidebarModule, progress: AllProgress): Row[] {
+  if (mod.meta.type === "multistage") {
+    return mod.stages.map((stage, i) => {
+      const id = `${mod.meta.slug}#${i}`
+      const p = progress[id]
+      return {
+        id,
+        title: stage.title,
+        href: `/lessons/${mod.meta.slug}?stage=${i + 1}`,
+        passed: p?.passed ?? 0,
+        total: p?.total ?? stage.testCount,
+      }
+    })
+  }
+  return mod.lessons.map((lesson) => {
+    const id = `${lesson.moduleSlug}/${lesson.slug}`
+    const p = progress[id]
+    return {
+      id,
+      title: lesson.title,
+      href: `/lessons/${lesson.moduleSlug}/${lesson.slug}`,
+      passed: p?.passed ?? 0,
+      total: p?.total ?? lesson.testCount,
+    }
+  })
 }
 
 function ProgressBar({ passed, total }: { passed: number; total: number }) {
@@ -57,7 +102,8 @@ function ProgressBar({ passed, total }: { passed: number; total: number }) {
   )
 }
 
-export function ProgressPage({ modules }: { modules: SidebarModule[] }) {
+export function ProgressPage({ sections }: { sections: ModuleSection[] }) {
+  const modules: SidebarModule[] = sections.flatMap((s) => s.modules)
   const [progress, setProgress] = useState<AllProgress>({})
 
   useEffect(() => {
@@ -65,17 +111,22 @@ export function ProgressPage({ modules }: { modules: SidebarModule[] }) {
     handler()
     window.addEventListener("ftc-tests-updated", handler)
     return () => window.removeEventListener("ftc-tests-updated", handler)
-  }, [modules])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections])
 
-  // Compute totals
+  const sectionData = sections.map((section) => ({
+    title: section.title,
+    modules: section.modules.map((mod) => ({ mod, rows: buildRows(mod, progress) })),
+  }))
+
   let totalPassed = 0
   let totalTests = 0
-  for (const mod of modules) {
-    for (const lesson of mod.lessons) {
-      const id = `${lesson.moduleSlug}/${lesson.slug}`
-      const p = progress[id]
-      totalPassed += p?.passed ?? 0
-      totalTests += p?.total ?? lesson.testCount
+  for (const section of sectionData) {
+    for (const { rows } of section.modules) {
+      for (const row of rows) {
+        totalPassed += row.passed
+        totalTests += row.total
+      }
     }
   }
   const overallPct = totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0
@@ -109,66 +160,68 @@ export function ProgressPage({ modules }: { modules: SidebarModule[] }) {
         </div>
       </div>
 
-      {/* Per-module breakdown */}
-      <div className="space-y-6">
-        {modules.map((mod) => {
-          let modPassed = 0
-          let modTotal = 0
-          for (const lesson of mod.lessons) {
-            const id = `${lesson.moduleSlug}/${lesson.slug}`
-            const p = progress[id]
-            modPassed += p?.passed ?? 0
-            modTotal += p?.total ?? lesson.testCount
-          }
+      {/* Section-grouped module breakdown */}
+      <div className="space-y-10">
+        {sectionData.map((section) => {
+          const visibleModules = section.modules.filter(({ rows }) => rows.length > 0)
+          if (visibleModules.length === 0) return null
+          return (
+            <section key={section.title}>
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+                {section.title}
+              </h2>
+              <div className="space-y-6">
+                {visibleModules.map(({ mod, rows }) => {
+          const modPassed = rows.reduce((s, r) => s + r.passed, 0)
+          const modTotal = rows.reduce((s, r) => s + r.total, 0)
 
           return (
             <div key={mod.meta.slug}>
               <div className="mb-2 flex items-baseline justify-between">
-                <h2 className="text-sm font-semibold text-[var(--color-text)]">
+                <h3 className="text-sm font-semibold text-[var(--color-text)]">
                   {mod.meta.title}
-                </h2>
+                </h3>
                 <span className="font-mono text-xs text-[var(--color-text-muted)]">
                   {modPassed}/{modTotal}
                 </span>
               </div>
 
               <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
-                {mod.lessons.map((lesson, i) => {
-                  const id = `${lesson.moduleSlug}/${lesson.slug}`
-                  const p = progress[id]
-                  const passed = p?.passed ?? 0
-                  const total = p?.total ?? lesson.testCount
-                  const isComplete = total > 0 && passed === total
+                {rows.map((row, i) => {
+                  const isComplete = row.total > 0 && row.passed === row.total
 
                   return (
                     <Link
-                      key={lesson.slug}
-                      href={`/lessons/${lesson.moduleSlug}/${lesson.slug}`}
+                      key={row.id}
+                      href={row.href}
                       className={`flex items-center gap-4 px-4 py-3 text-sm transition-colors hover:bg-[var(--color-surface-hover)] ${
                         i > 0 ? "border-t border-[var(--color-border)]" : ""
                       }`}
                     >
-                      {/* Completion dot */}
                       <span
                         className={`h-2 w-2 shrink-0 rounded-full ${
                           isComplete
                             ? "bg-[var(--color-success)]"
-                            : passed > 0
+                            : row.passed > 0
                             ? "bg-[var(--color-warning)]"
                             : "bg-red-500"
                         }`}
                       />
                       <span className="flex-1 truncate text-[var(--color-text)]">
-                        {lesson.title}
+                        {row.title}
                       </span>
                       <div className="w-40 shrink-0">
-                        <ProgressBar passed={passed} total={total} />
+                        <ProgressBar passed={row.passed} total={row.total} />
                       </div>
                     </Link>
                   )
                 })}
               </div>
             </div>
+          )
+                })}
+              </div>
+            </section>
           )
         })}
       </div>

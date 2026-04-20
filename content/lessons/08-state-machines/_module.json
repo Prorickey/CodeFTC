@@ -1,5 +1,6 @@
 {
   "title": "State Machines",
   "order": 8,
-  "description": "Organize complex robot behavior with finite state machines."
+  "description": "Organize complex robot behavior with finite state machines.",
+  "type": "multistage"
 }
