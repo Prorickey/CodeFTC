@@ -1,4 +1,4 @@
-import { getModules } from "@/lib/lessons"
+import { getModuleSections } from "@/lib/lessons"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { BookOpen, Code, Cpu, Zap } from "lucide-react"
 import Link from "next/link"
@@ -9,11 +9,11 @@ export const metadata = {
 }
 
 export default async function IntroductionPage() {
-  const modules = await getModules()
+  const sections = await getModuleSections()
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar modules={modules} moduleSlug="" lessonSlug="" />
+      <Sidebar sections={sections} moduleSlug="" lessonSlug="" />
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl px-6 py-12 lg:px-8">
           {/* Hero section */}
@@ -63,31 +63,6 @@ export default async function IntroductionPage() {
               Java code is compiled and tested on a real JDK. You&apos;ll see green checkmarks for passing
               tests and helpful error messages when something needs fixing.
             </p>
-          </div>
-
-          {/* Curriculum overview */}
-          <h2 className="mb-4 text-2xl font-bold">Curriculum</h2>
-          <div className="mb-10 space-y-3">
-            {modules.map((mod) => (
-              <div key={mod.meta.slug} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-                <h3 className="mb-1 font-semibold">{mod.meta.title}</h3>
-                {mod.meta.description && (
-                  <p className="mb-2 text-sm text-[var(--color-text-muted)]">{mod.meta.description}</p>
-                )}
-                <ul className="space-y-1">
-                  {mod.lessons.map((lesson) => (
-                    <li key={lesson.slug}>
-                      <Link
-                        href={`/lessons/${lesson.moduleSlug}/${lesson.slug}`}
-                        className="text-sm text-[var(--color-accent)] hover:underline"
-                      >
-                        {lesson.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
           </div>
 
           {/* CTA */}

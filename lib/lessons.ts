@@ -13,6 +13,7 @@ import type {
   LessonData,
   MultiStageModuleData,
   SidebarModule,
+  ModuleSection,
   Stage,
 } from "./types"
 
@@ -48,6 +49,47 @@ export const getModules = unstable_cache(
     return modules
   },
   ["modules"],
+  { revalidate: false }
+)
+
+export const getModuleSections = unstable_cache(
+  async (): Promise<ModuleSection[]> => {
+    const modules = await getModules()
+    const modulesBySlug = new Map(modules.map((m) => [m.meta.slug, m]))
+
+    type SectionsConfig = { sections: { title: string; modules: string[] }[] }
+    let config: SectionsConfig | null = null
+    try {
+      const raw = await readFile(join(CONTENT_DIR, "_sections.json"), "utf-8")
+      config = JSON.parse(raw) as SectionsConfig
+    } catch {
+      config = null
+    }
+
+    const claimed = new Set<string>()
+    const sections: ModuleSection[] = []
+
+    for (const entry of config?.sections ?? []) {
+      const resolved: SidebarModule[] = []
+      for (const slug of entry.modules) {
+        const mod = modulesBySlug.get(slug)
+        if (!mod) continue
+        claimed.add(slug)
+        resolved.push(mod)
+      }
+      if (resolved.length > 0) {
+        sections.push({ title: entry.title, modules: resolved })
+      }
+    }
+
+    const leftover = modules.filter((m) => !claimed.has(m.meta.slug))
+    if (leftover.length > 0) {
+      sections.push({ title: "Other", modules: leftover })
+    }
+
+    return sections
+  },
+  ["module-sections"],
   { revalidate: false }
 )
 

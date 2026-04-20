@@ -18,14 +18,14 @@ import { executeInBrowser } from "@/lib/cheerpj-executor"
 import {
   isMultiStageProgressState,
   type ExecutionResult,
+  type ModuleSection,
   type MultiStageModuleData,
   type MultiStageProgressState,
-  type SidebarModule,
 } from "@/lib/types"
 
 interface MultiStageModulePageProps {
   data: MultiStageModuleData
-  modules: SidebarModule[]
+  sections: ModuleSection[]
   moduleSlug: string
   userId: string | null
 }
@@ -55,7 +55,7 @@ function clampStage(n: number, total: number) {
 
 export function MultiStageModulePage({
   data,
-  modules,
+  sections,
   moduleSlug,
   userId,
 }: MultiStageModulePageProps) {
@@ -257,7 +257,6 @@ export function MultiStageModulePage({
         lessonId: `${moduleSlug}/${activeStage.slug}`,
       }),
     }).catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, moduleSlug, activeStage.slug])
 
   const latestRunAllPassed =
@@ -504,7 +503,7 @@ export function MultiStageModulePage({
     <div className="flex h-screen overflow-hidden">
       {!sidebarCollapsed && (
         <Sidebar
-          modules={modules}
+          sections={sections}
           moduleSlug={moduleSlug}
           lessonSlug=""
           onCollapse={() => setSidebarCollapsed(true)}

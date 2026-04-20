@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation"
-import { getLessonData, getModules } from "@/lib/lessons"
+import { getLessonData, getModules, getModuleSections } from "@/lib/lessons"
 import { auth } from "@/auth"
 import { LessonPage } from "./LessonPage"
 
@@ -12,7 +12,11 @@ interface Props {
 
 export default async function LessonRoute({ params }: Props) {
   const { moduleSlug, lessonSlug } = await params
-  const [modules, session] = await Promise.all([getModules(), auth()])
+  const [modules, sections, session] = await Promise.all([
+    getModules(),
+    getModuleSections(),
+    auth(),
+  ])
   const mod = modules.find((m) => m.meta.slug === moduleSlug)
   if (mod?.meta.type === "multistage") {
     redirect(`/lessons/${moduleSlug}`)
@@ -27,7 +31,7 @@ export default async function LessonRoute({ params }: Props) {
   return (
     <LessonPage
       data={data}
-      modules={modules}
+      sections={sections}
       moduleSlug={moduleSlug}
       lessonSlug={lessonSlug}
       userId={session?.user?.id ?? null}
@@ -37,7 +41,12 @@ export default async function LessonRoute({ params }: Props) {
 
 export async function generateMetadata({ params }: Props) {
   const { moduleSlug, lessonSlug } = await params
-  const data = await getLessonData(moduleSlug, lessonSlug)
+  const modules = await getModules()
+  const mod = modules.find((m) => m.meta.slug === moduleSlug)
+  if (!mod || mod.meta.type === "multistage") {
+    return { title: "Lesson Not Found" }
+  }
+  const data = await getLessonData(moduleSlug, lessonSlug).catch(() => null)
   if (!data) return { title: "Lesson Not Found" }
   return {
     title: `${data.lesson.title} | Code FTC`,

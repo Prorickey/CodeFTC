@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation"
-import { getMultiStageModuleData, getModules } from "@/lib/lessons"
+import { getMultiStageModuleData, getModules, getModuleSections } from "@/lib/lessons"
 import { auth } from "@/auth"
 import { MultiStageModulePage } from "./MultiStageModulePage"
 
@@ -20,9 +20,10 @@ export default async function ModuleRoute({ params }: Props) {
     redirect(`/lessons/${moduleSlug}/${first.slug}`)
   }
 
-  const [data, session] = await Promise.all([
+  const [data, session, sections] = await Promise.all([
     getMultiStageModuleData(moduleSlug),
     auth(),
+    getModuleSections(),
   ])
 
   if (!data) notFound()
@@ -30,7 +31,7 @@ export default async function ModuleRoute({ params }: Props) {
   return (
     <MultiStageModulePage
       data={data}
-      modules={modules}
+      sections={sections}
       moduleSlug={moduleSlug}
       userId={session?.user?.id ?? null}
     />

@@ -5,10 +5,10 @@ import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { ChevronRight, ChevronDown, BookOpen, Home, Menu, X, LogIn, LogOut, PanelLeftClose, BarChart2, Check, Layers } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
-import type { SidebarModule } from "@/lib/types"
+import type { ModuleSection, SidebarModule } from "@/lib/types"
 
 interface SidebarProps {
-  modules: SidebarModule[]
+  sections: ModuleSection[]
   moduleSlug: string
   lessonSlug: string
   onCollapse?: () => void
@@ -165,10 +165,11 @@ function loadMultiStageProgress(modules: SidebarModule[]): MultiStageProgress {
   return result
 }
 
-export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: SidebarProps) {
+export function Sidebar({ sections, moduleSlug, lessonSlug, onCollapse }: SidebarProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const modules: SidebarModule[] = sections.flatMap((s) => s.modules)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(() => {
     const initial = new Set<string>()
@@ -186,7 +187,10 @@ export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: Sidebar
     handler()
     window.addEventListener("ftc-tests-updated", handler)
     return () => window.removeEventListener("ftc-tests-updated", handler)
-  }, [modules])
+    // modules is derived from sections; depending on sections keeps the
+    // reference stable across renders and avoids an infinite update loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections])
 
   function toggleModule(slug: string) {
     setExpandedModules((prev) => {
@@ -250,7 +254,12 @@ export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: Sidebar
           </Link>
         )}
 
-        {modules.map((mod) => {
+        {sections.map((section, sectionIdx) => (
+          <div key={section.title} className={sectionIdx > 0 ? "mt-3" : "mt-2"}>
+            <h3 className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]/70">
+              {section.title}
+            </h3>
+            {section.modules.map((mod) => {
           const isExpanded = expandedModules.has(mod.meta.slug)
 
           if (mod.meta.type === "multistage") {
@@ -376,6 +385,8 @@ export function Sidebar({ modules, moduleSlug, lessonSlug, onCollapse }: Sidebar
             </div>
           )
         })}
+          </div>
+        ))}
       </div>
 
       <UserFooter />

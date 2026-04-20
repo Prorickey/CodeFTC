@@ -8,7 +8,6 @@ interface ModuleStageStepperProps {
   stages: Stage[]
   current: number
   completed: number[]
-  onJump: (index: number) => void
 }
 
 export function ModuleStageStepper({

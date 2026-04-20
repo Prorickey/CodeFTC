@@ -13,11 +13,11 @@ import { OutputPanel } from "@/components/editor/OutputPanel"
 import { HintAccordion } from "@/components/ui/HintAccordion"
 import { useCheerpJ } from "@/lib/cheerpj-context"
 import { executeInBrowser } from "@/lib/cheerpj-executor"
-import type { LessonData, SidebarModule, ExecutionResult } from "@/lib/types"
+import type { LessonData, ModuleSection, ExecutionResult } from "@/lib/types"
 
 interface LessonPageProps {
   data: LessonData
-  modules: SidebarModule[]
+  sections: ModuleSection[]
   moduleSlug: string
   lessonSlug: string
   userId: string | null
@@ -43,7 +43,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export function LessonPage({
   data,
-  modules,
+  sections,
   moduleSlug,
   lessonSlug,
   userId,
@@ -237,7 +237,7 @@ export function LessonPage({
     <div className="flex h-screen overflow-hidden">
       {!sidebarCollapsed && (
         <Sidebar
-          modules={modules}
+          sections={sections}
           moduleSlug={moduleSlug}
           lessonSlug={lessonSlug}
           onCollapse={() => setSidebarCollapsed(true)}

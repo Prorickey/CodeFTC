@@ -98,6 +98,11 @@ export interface SidebarModule {
   stages: StageMeta[]
 }
 
+export interface ModuleSection {
+  title: string
+  modules: SidebarModule[]
+}
+
 export interface MultiStageProgressState {
   __v: 2
   currentStage: number
